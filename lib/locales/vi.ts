@@ -46,7 +46,7 @@ export default {
       notifications: 'Cài đặt thông báo',
       language: 'Ngôn ngữ',
       feedback: 'Góp ý',
-      about: 'Về DealMate',
+      about: 'Về Giá Tốt',
     },
     removeAdsTitle: 'Xoá quảng cáo',
     removeAdsSub: 'Trải nghiệm không quảng cáo, mua một lần',
@@ -102,6 +102,11 @@ export default {
   toast: {
     saved: 'Đã lưu deal',
     unsaved: 'Đã bỏ lưu deal',
+  },
+  update: {
+    checking: 'Đang kiểm tra cập nhật...',
+    downloading: 'Đang tải bản cập nhật mới...',
+    applying: 'Đang áp dụng cập nhật...',
   },
   paywall: {
     title: 'Xoá quảng cáo',

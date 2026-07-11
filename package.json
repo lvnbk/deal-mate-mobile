@@ -2,6 +2,9 @@
   "name": "deal-mate-mobile",
   "version": "0.1.0",
   "main": "expo-router/entry",
+  "engines": {
+    "node": ">=20.12"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -14,6 +17,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@tanstack/react-query": "^5.101.2",
     "expo": "~57.0.2",
+    "expo-application": "~57.0.0",
     "expo-build-properties": "~57.0.3",
     "expo-constants": "~57.0.3",
     "expo-dev-client": "~57.0.5",
@@ -25,6 +29,7 @@
     "expo-router": "~57.0.3",
     "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "~57.0.0",
+    "expo-updates": "~57.0.6",
     "expo-web-browser": "~57.0.0",
     "i18next": "^26.3.4",
     "posthog-react-native": "^4.54.4",

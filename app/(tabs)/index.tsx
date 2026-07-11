@@ -17,6 +17,7 @@ import { FilterChip } from '@/components/FilterChip';
 import { AdBanner } from '@/components/AdBanner';
 import { DealListSkeleton } from '@/components/Skeleton';
 import { useDeals, useSources } from '@/lib/queries';
+import { useFollowedSources } from '@/lib/prefs';
 import { useOpenDeal } from '@/lib/ads';
 import { mockCategories } from '@/lib/mockData';
 import { colors, spacing, radii } from '@/constants/theme';
@@ -40,12 +41,15 @@ export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const searchRef = useRef<TextInput>(null);
 
-  // Fetch the whole category once; shop filtering happens client-side below.
-  const { data: categoryDeals = [], isLoading, isError, refetch, isRefetching } =
-    useDeals(category);
+  const { data: followedIds } = useFollowedSources();
   const { data: sources = [] } = useSources();
 
-  // Only shops that actually have deals in the current category.
+  // Fetch only the sources the user follows (chosen at onboarding / edited on the
+  // Sources tab). `null` = hasn't chosen yet → pass none, which fetches everything.
+  const { data: categoryDeals = [], isLoading, isError, refetch, isRefetching } =
+    useDeals(category, followedIds ?? []);
+
+  // Only followed shops that actually have deals in the current category.
   const availableShops = useMemo(() => {
     const ids = new Set(categoryDeals.map((d) => d.sourceId));
     return sources.filter((s) => ids.has(s.id));

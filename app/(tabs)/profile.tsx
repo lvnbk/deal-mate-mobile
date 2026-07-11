@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   StyleSheet,
@@ -14,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Application from 'expo-application';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -29,18 +31,25 @@ import { postFeedback } from '@/lib/api';
 import { getDeviceId } from '@/lib/device';
 import { analytics, events } from '@/lib/analytics';
 
+const ABOUT_URL = 'https://giatot.tech';
+
 type Row = {
   icon: keyof typeof Ionicons.glyphMap;
   key: string;
   route?: string;
   action?: 'feedback';
+  url?: string;
 };
 
 const rows: Row[] = [
   { icon: 'language-outline', key: 'language', route: '/language' },
   { icon: 'chatbubble-ellipses-outline', key: 'feedback', action: 'feedback' },
-  { icon: 'information-circle-outline', key: 'about' },
+  { icon: 'information-circle-outline', key: 'about', url: ABOUT_URL },
 ];
+
+// version name (0.1.0) + build number (versionCode/buildNumber), from the native binary.
+const APP_VERSION = Application.nativeApplicationVersion ?? '—';
+const APP_BUILD = Application.nativeBuildVersion ?? '—';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -86,6 +95,7 @@ export default function ProfileScreen() {
 
   const onRowPress = (row: Row) => {
     if (row.action === 'feedback') setFeedbackOpen(true);
+    else if (row.url) Linking.openURL(row.url).catch(() => {});
     else if (row.route) router.push(row.route as never);
   };
 
@@ -155,6 +165,10 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={16} color={colors.muted} />
         </TouchableOpacity>
       ))}
+
+      <View style={styles.footer}>
+        <Text style={styles.version}>{`v${APP_VERSION} (${APP_BUILD})`}</Text>
+      </View>
 
       <Modal
         visible={feedbackOpen}
@@ -280,6 +294,8 @@ const styles = StyleSheet.create({
   },
   rowFirst: { minHeight: 52 },
   rowLabel: { flex: 1, fontSize: 14, color: colors.text },
+  footer: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: spacing.lg },
+  version: { fontSize: 12, color: colors.muted },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,9 +11,20 @@ import { usePushNotifications } from '@/lib/notifications';
 import { initInterstitial } from '@/lib/ads';
 import { initPurchases } from '@/lib/purchases';
 import { initFeatureFlags } from '@/lib/featureFlags';
+import AnimatedSplash from '@/components/AnimatedSplash';
+import UpdateGate from '@/components/UpdateGate';
 
 export default function RootLayout() {
   usePushNotifications();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Keep the branded splash on screen briefly so the logo registers, then
+    // fade it out. Startup init below is fire-and-forget, so this is purely a
+    // minimum display window rather than a real dependency gate.
+    const t = setTimeout(() => setReady(true), 800);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     // Pull the latest remote feature flags (show_banner / show_iap).
@@ -38,13 +49,17 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="deal/[id]" />
-          <Stack.Screen name="language" />
-          <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
-        </Stack>
+        <UpdateGate>
+          <AnimatedSplash ready={ready}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="deal/[id]" />
+              <Stack.Screen name="language" />
+              <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
+            </Stack>
+          </AnimatedSplash>
+        </UpdateGate>
         <StatusBar style="auto" />
       </GestureHandlerRootView>
       <Toast />

@@ -46,7 +46,7 @@ export default {
       notifications: 'Notification settings',
       language: 'Language',
       feedback: 'Feedback',
-      about: 'About DealMate',
+      about: 'About Giá Tốt',
     },
     removeAdsTitle: 'Remove ads',
     removeAdsSub: 'An ad-free experience, one-time purchase',
@@ -102,6 +102,11 @@ export default {
   toast: {
     saved: 'Deal saved',
     unsaved: 'Removed from saved',
+  },
+  update: {
+    checking: 'Checking for updates...',
+    downloading: 'Downloading the latest update...',
+    applying: 'Applying update...',
   },
   paywall: {
     title: 'Remove ads',
