@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DealMate",
+    "name": "Giá Tốt",
     "slug": "deal-mate",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -47,7 +47,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/icon.png",
+          "image": "./assets/splash-icon.png",
           "imageWidth": 128,
           "resizeMode": "contain",
           "backgroundColor": "#FFF6F0"
@@ -64,7 +64,7 @@
         {
           "androidAppId": "ca-app-pub-3940256099942544~3347511713",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511",
-          "userTrackingUsageDescription": "Cho phép DealMate dùng dữ liệu để hiển thị quảng cáo phù hợp hơn với bạn."
+          "userTrackingUsageDescription": "Cho phép Giá Tốt dùng dữ liệu để hiển thị quảng cáo phù hợp hơn với bạn."
         }
       ],
       "./plugins/withAndroidRelease"

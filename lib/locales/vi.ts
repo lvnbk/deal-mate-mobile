@@ -40,7 +40,7 @@ export default {
     guestSub: 'Deal đã lưu và cài đặt được lưu ngay trên máy',
     notifDeniedTitle: 'Chưa bật được thông báo',
     notifDeniedText:
-      'Hãy cho phép DealMate gửi thông báo trong Cài đặt của điện thoại để nhận deal mới.',
+      'Hãy cho phép Giá Tốt gửi thông báo trong Cài đặt của điện thoại để nhận deal mới.',
     language: 'Ngôn ngữ',
     rows: {
       notifications: 'Cài đặt thông báo',
@@ -60,7 +60,7 @@ export default {
     pickTitle: 'Chọn nguồn theo dõi',
     pickSub: 'Bạn sẽ nhận deal từ những nơi này. Có thể đổi lại bất cứ lúc nào trong tab Nguồn.',
     slides: {
-      welcomeTitle: 'Chào mừng đến với DealMate',
+      welcomeTitle: 'Chào mừng đến với Giá Tốt',
       welcomeSub:
         'Trợ lý săn sale của bạn. Chúng tôi gom hot deal từ nhiều trang TMĐT lớn để bạn không phải vào từng nơi.',
       howTitle: 'Deal mới mỗi ngày',
@@ -78,7 +78,7 @@ export default {
     endsAt: 'Kết thúc',
     savings: 'Tiết kiệm {{amount}}',
     viewAt: 'Xem tại {{source}}',
-    shareMessage: '{{title}} chỉ còn {{price}} tại {{source}} — xem trên DealMate:\n{{url}}',
+    shareMessage: '{{title}} chỉ còn {{price}} tại {{source}} — xem trên Giá Tốt:\n{{url}}',
     shareError: 'Không chia sẻ được, vui lòng thử lại.',
   },
   feedback: {
@@ -110,7 +110,7 @@ export default {
   },
   paywall: {
     title: 'Xoá quảng cáo',
-    subtitle: 'Mua một lần, dùng mãi mãi. Tận hưởng DealMate không còn quảng cáo.',
+    subtitle: 'Mua một lần, dùng mãi mãi. Tận hưởng Giá Tốt không còn quảng cáo.',
     benefitBanner: 'Không còn banner quảng cáo',
     benefitInterstitial: 'Không còn quảng cáo xen kẽ khi mở deal',
     benefitSupport: 'Ủng hộ đội ngũ phát triển',

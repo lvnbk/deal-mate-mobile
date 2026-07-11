@@ -40,7 +40,7 @@ export default {
     guestSub: 'Your saved deals and settings live on this device',
     notifDeniedTitle: "Couldn't enable notifications",
     notifDeniedText:
-      'Allow DealMate to send notifications in your phone Settings to get new deals.',
+      'Allow Giá Tốt to send notifications in your phone Settings to get new deals.',
     language: 'Language',
     rows: {
       notifications: 'Notification settings',
@@ -60,7 +60,7 @@ export default {
     pickTitle: 'Choose sources to follow',
     pickSub: "You'll get deals from these. You can change them anytime in the Sources tab.",
     slides: {
-      welcomeTitle: 'Welcome to DealMate',
+      welcomeTitle: 'Welcome to Giá Tốt',
       welcomeSub:
         'Your deal-hunting assistant. We gather hot deals from major shops so you don’t have to check each one.',
       howTitle: 'New deals every day',
@@ -78,7 +78,7 @@ export default {
     endsAt: 'Ends',
     savings: 'Save {{amount}}',
     viewAt: 'View on {{source}}',
-    shareMessage: '{{title}} is just {{price}} at {{source}} — see it on DealMate:\n{{url}}',
+    shareMessage: '{{title}} is just {{price}} at {{source}} — see it on Giá Tốt:\n{{url}}',
     shareError: 'Could not share, please try again.',
   },
   feedback: {
@@ -110,7 +110,7 @@ export default {
   },
   paywall: {
     title: 'Remove ads',
-    subtitle: 'One-time purchase, yours forever. Enjoy DealMate with no ads.',
+    subtitle: 'One-time purchase, yours forever. Enjoy Giá Tốt with no ads.',
     benefitBanner: 'No more banner ads',
     benefitInterstitial: 'No more interstitial ads when opening deals',
     benefitSupport: 'Support the development team',

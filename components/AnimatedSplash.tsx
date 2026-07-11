@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Image, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
-import { gradients, radii } from '@/constants/theme';
+import { gradients } from '@/constants/theme';
 
 // Keep the native splash up until our JS gradient splash has mounted, so the
 // hand-off is seamless (no white flash between native → JS).
@@ -50,11 +50,13 @@ export default function AnimatedSplash({ ready, children }: Props) {
             end={{ x: 0.1, y: 0 }}
             style={styles.fill}
           >
-            <Image
-              source={require('@/assets/icon.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View style={styles.logoWrap}>
+              <Image
+                source={require('@/assets/icon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
           </LinearGradient>
         </Animated.View>
       )}
@@ -65,9 +67,15 @@ export default function AnimatedSplash({ ready, children }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   fill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  logo: {
+  // Wrapper clips the corners — Android doesn't reliably round <Image> itself.
+  logoWrap: {
     width: 128,
     height: 128,
-    borderRadius: radii.lg * 2,
+    borderRadius: 28, // ~22% of 128, matching the iOS app-icon squircle
+    overflow: 'hidden',
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
   },
 });

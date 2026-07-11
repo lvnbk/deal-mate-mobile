@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FlatList,
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,9 @@ import { useFollowedSources } from '@/lib/prefs';
 import { useOpenDeal } from '@/lib/ads';
 import { mockCategories } from '@/lib/mockData';
 import { colors, spacing, radii } from '@/constants/theme';
+
+/** How many deals to reveal per "page"; more load in as the user scrolls. */
+const PAGE_SIZE = 20;
 
 /** Lowercase + strip Vietnamese diacritics so search matches regardless of accents. */
 function normalize(s: string) {
@@ -57,6 +61,7 @@ export default function HomeScreen() {
 
   const query = search.trim();
 
+  // Full filtered result — search + shop filter still run over the whole set.
   const deals = useMemo(() => {
     let list = sourceIds.length
       ? categoryDeals.filter((d) => sourceIds.includes(d.sourceId))
@@ -69,6 +74,24 @@ export default function HomeScreen() {
     }
     return list;
   }, [categoryDeals, sourceIds, query]);
+
+  // Reveal deals a page at a time; scrolling to the end loads the next slice.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Any change to the filtered set (category / shop / search) restarts paging.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [category, sourceIds, query]);
+
+  const visibleDeals = useMemo(
+    () => deals.slice(0, visibleCount),
+    [deals, visibleCount],
+  );
+  const hasMore = visibleCount < deals.length;
+
+  const loadMore = () => {
+    if (hasMore) setVisibleCount((c) => c + PAGE_SIZE);
+  };
 
   const selectCategory = (id: string) => {
     setCategory(id);
@@ -172,15 +195,24 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <FlatList
-            data={deals}
+          <FlashList
+            data={visibleDeals}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <DealCard deal={item} onPress={() => openDeal(item.id)} />
             )}
             contentContainerStyle={styles.list}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
             refreshControl={
               <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+            }
+            ListFooterComponent={
+              hasMore ? (
+                <View style={styles.footer}>
+                  <ActivityIndicator color={colors.muted} />
+                </View>
+              ) : null
             }
             ListEmptyComponent={
               <View style={styles.empty}>
@@ -229,6 +261,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+  footer: { paddingVertical: spacing.lg },
   empty: { alignItems: 'center', paddingVertical: spacing.xl * 2 },
   emptyText: { color: colors.muted },
   retry: {
