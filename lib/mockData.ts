@@ -12,8 +12,11 @@ export const mockCategories: Category[] = [
   { id: 'all', name: 'Tất cả' },
   { id: 'electronics', name: 'Điện máy' },
   { id: 'phone', name: 'Điện thoại' },
+  { id: 'laptop', name: 'Laptop' },
   { id: 'baby', name: 'Mẹ & bé' },
   { id: 'fashion', name: 'Thời trang' },
+  { id: 'beauty', name: 'Làm đẹp' },
+  { id: 'other', name: 'Khác' },
 ];
 
 export const mockDeals: Deal[] = [

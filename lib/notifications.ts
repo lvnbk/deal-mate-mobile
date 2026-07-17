@@ -7,10 +7,61 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { getDeviceId } from './device';
 import { putPreferences } from './api';
+import { queryClient } from './queryClient';
 
 // Whether the user wants deal push notifications. Unset (null) = not decided yet;
 // we default to enabled to match the app's auto-register-on-launch behavior.
 const NOTIF_ENABLED_KEY = '@dealmate/notifications_enabled';
+
+// Lịch sử thông báo đã nhận (hiển thị ở tab Thông báo). Local-only, cap 50.
+const NOTIF_HISTORY_KEY = '@dealmate/notification_history';
+const NOTIF_HISTORY_LIMIT = 50;
+
+export type ReceivedNotification = {
+  id: string; // notification request identifier — dùng để dedup
+  title: string;
+  body: string;
+  dealId: string | null;
+  type: string | null; // 'new_deals' | 'price_alert' | ...
+  receivedAt: string;
+};
+
+export const notifKeys = {
+  history: ['notifHistory'] as const,
+};
+
+export async function readNotificationHistory(): Promise<ReceivedNotification[]> {
+  try {
+    const raw = await AsyncStorage.getItem(NOTIF_HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function recordNotification(n: Notifications.Notification): Promise<void> {
+  const content = n.request.content;
+  const data = (content.data ?? {}) as Record<string, unknown>;
+  const entry: ReceivedNotification = {
+    id: n.request.identifier,
+    title: content.title ?? '',
+    body: content.body ?? '',
+    dealId: typeof data.dealId === 'string' ? data.dealId : null,
+    type: typeof data.type === 'string' ? data.type : null,
+    receivedAt: new Date().toISOString(),
+  };
+  const current = await readNotificationHistory();
+  if (current.some((e) => e.id === entry.id)) return; // đã ghi (received + tap)
+  const next = [entry, ...current].slice(0, NOTIF_HISTORY_LIMIT);
+  await AsyncStorage.setItem(NOTIF_HISTORY_KEY, JSON.stringify(next));
+  queryClient.invalidateQueries({ queryKey: notifKeys.history });
+}
+
+export async function clearNotificationHistory(): Promise<void> {
+  await AsyncStorage.setItem(NOTIF_HISTORY_KEY, JSON.stringify([]));
+  queryClient.invalidateQueries({ queryKey: notifKeys.history });
+}
 
 // Show alerts/badges even when the app is foregrounded.
 Notifications.setNotificationHandler({
@@ -98,6 +149,7 @@ export async function disablePush(): Promise<void> {
 export function usePushNotifications() {
   const router = useRouter();
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
+  const receivedListener = useRef<Notifications.Subscription | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,9 +166,18 @@ export function usePushNotifications() {
       }
     })();
 
-    // Tap on a notification → open the deal it references.
+    // Notification đến khi app đang mở → lưu vào lịch sử tab Thông báo.
+    receivedListener.current = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        void recordNotification(notification);
+      },
+    );
+
+    // Tap on a notification → lưu lịch sử (app có thể vừa bị kill nên listener
+    // received chưa chạy) rồi mở deal liên quan.
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
       (response) => {
+        void recordNotification(response.notification);
         const dealId = response.notification.request.content.data?.dealId;
         if (typeof dealId === 'string') router.push(`/deal/${dealId}`);
       },
@@ -125,6 +186,7 @@ export function usePushNotifications() {
     return () => {
       cancelled = true;
       responseListener.current?.remove();
+      receivedListener.current?.remove();
     };
   }, [router]);
 }

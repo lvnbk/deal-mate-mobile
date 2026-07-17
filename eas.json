@@ -21,15 +21,34 @@
       }
     },
     "preview": {
+      "extends": "production",
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "autoIncrement": false
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_ADMOB_BANNER_ID": "ca-app-pub-5643829825649081/1491558528",
+        "EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID": "ca-app-pub-5643829825649081/3211834303",
+        "EXPO_PUBLIC_ADMOB_BANNER_ID_IOS": "ca-app-pub-5643829825649081/4761868471",
+        "EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID_IOS": "ca-app-pub-5643829825649081/3772340579",
+        "EXPO_PUBLIC_API_URL": "https://dealmate-api.levietnhutit.workers.dev",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_2d8KkM0KBEXitzEQw7dWwDjjTEdFsEeEFT2qeidC0va",
+        "EXPO_PUBLIC_RC_ANDROID_KEY": "goog_iJbomkEFtIZQlSUmJWPARzBkFlm",
+        "EXPO_PUBLIC_RC_IOS_KEY": "appl_BMHonEWuLXedYWIngFcyCYXaLfN",
+        "EXPO_PUBLIC_USE_MOCK": "0"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "levietnhutit@gmail.com",
+        "ascAppId": "6791636799",
+        "appleTeamId": "8299FD44DA"
+      }
+    }
   }
 }

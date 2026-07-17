@@ -23,19 +23,6 @@ import { useOpenDeal } from '@/lib/ads';
 import { mockCategories } from '@/lib/mockData';
 import { colors, spacing, radii } from '@/constants/theme';
 
-/** How many deals to reveal per "page"; more load in as the user scrolls. */
-const PAGE_SIZE = 20;
-
-/** Lowercase + strip Vietnamese diacritics so search matches regardless of accents. */
-function normalize(s: string) {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    // eslint-disable-next-line no-misleading-character-class
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd');
-}
-
 export default function HomeScreen() {
   const openDeal = useOpenDeal();
   const { t } = useTranslation();
@@ -48,49 +35,46 @@ export default function HomeScreen() {
   const { data: followedIds } = useFollowedSources();
   const { data: sources = [] } = useSources();
 
-  // Fetch only the sources the user follows (chosen at onboarding / edited on the
-  // Sources tab). `null` = hasn't chosen yet → pass none, which fetches everything.
-  const { data: categoryDeals = [], isLoading, isError, refetch, isRefetching } =
-    useDeals(category, followedIds ?? []);
-
-  // Only followed shops that actually have deals in the current category.
-  const availableShops = useMemo(() => {
-    const ids = new Set(categoryDeals.map((d) => d.sourceId));
-    return sources.filter((s) => ids.has(s.id));
-  }, [categoryDeals, sources]);
-
-  const query = search.trim();
-
-  // Full filtered result — search + shop filter still run over the whole set.
-  const deals = useMemo(() => {
-    let list = sourceIds.length
-      ? categoryDeals.filter((d) => sourceIds.includes(d.sourceId))
-      : categoryDeals;
-    if (query) {
-      const q = normalize(query);
-      list = list.filter(
-        (d) => normalize(d.title).includes(q) || normalize(d.sourceName).includes(q),
-      );
-    }
-    return list;
-  }, [categoryDeals, sourceIds, query]);
-
-  // Reveal deals a page at a time; scrolling to the end loads the next slice.
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-
-  // Any change to the filtered set (category / shop / search) restarts paging.
+  // Debounce the search box so we don't refetch on every keystroke.
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [category, sourceIds, query]);
+    const id = setTimeout(() => setDebouncedQuery(search.trim()), 350);
+    return () => clearTimeout(id);
+  }, [search]);
 
-  const visibleDeals = useMemo(
-    () => deals.slice(0, visibleCount),
-    [deals, visibleCount],
+  // Which shops to ask the server for: the explicitly-selected chips if any,
+  // otherwise the followed shops (null = not chosen yet → pass none = everything).
+  const effectiveSources = sourceIds.length ? sourceIds : followedIds ?? [];
+
+  // Server-side pagination: category / shop / search all run on the backend and
+  // pages stream in as the user scrolls.
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useDeals(category, effectiveSources, debouncedQuery);
+
+  const deals = useMemo(
+    () => data?.pages.flatMap((p) => p.deals) ?? [],
+    [data],
   );
-  const hasMore = visibleCount < deals.length;
+
+  const query = debouncedQuery;
+
+  // Followed shops as filter chips. Independent of the current result so tapping
+  // one shop never makes the other chips disappear.
+  const availableShops = useMemo(
+    () => (followedIds ? sources.filter((s) => followedIds.includes(s.id)) : []),
+    [followedIds, sources],
+  );
 
   const loadMore = () => {
-    if (hasMore) setVisibleCount((c) => c + PAGE_SIZE);
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   };
 
   const selectCategory = (id: string) => {
@@ -150,12 +134,7 @@ export default function HomeScreen() {
         )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chipsScroll}
-        contentContainerStyle={styles.chips}
-      >
+      <View style={styles.chipsWrap}>
         {mockCategories.map((cat) => (
           <FilterChip
             key={cat.id}
@@ -164,7 +143,7 @@ export default function HomeScreen() {
             onPress={() => selectCategory(cat.id)}
           />
         ))}
-      </ScrollView>
+      </View>
 
       {availableShops.length > 1 && (
         <ScrollView
@@ -196,7 +175,7 @@ export default function HomeScreen() {
           </View>
         ) : (
           <FlashList
-            data={visibleDeals}
+            data={deals}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <DealCard deal={item} onPress={() => openDeal(item.id)} />
@@ -208,7 +187,7 @@ export default function HomeScreen() {
               <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
             }
             ListFooterComponent={
-              hasMore ? (
+              isFetchingNextPage ? (
                 <View style={styles.footer}>
                   <ActivityIndicator color={colors.muted} />
                 </View>
@@ -254,6 +233,14 @@ const styles = StyleSheet.create({
   searchCancel: { fontSize: 14, color: colors.accent, fontWeight: '500' },
   body: { flex: 1 },
   chipsScroll: { flexGrow: 0, flexShrink: 0 },
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
   chips: {
     alignItems: 'center',
     paddingHorizontal: spacing.lg,

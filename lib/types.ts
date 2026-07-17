@@ -27,3 +27,27 @@ export type Category = {
   id: string;
   name: string;
 };
+
+/** Một điểm trên biểu đồ lịch sử giá (GET /deals/:id/history). */
+export type PricePoint = {
+  price: number;
+  recordedAt: string;
+};
+
+/** Cảnh báo giá user đặt cho 1 deal (bảng price_alerts phía backend). */
+export type PriceAlert = {
+  id: string;
+  dealId: string;
+  targetPrice: number;
+  isActive: boolean;
+  notifiedAt: string | null;
+  createdAt: string;
+  deal: {
+    id: string;
+    title: string;
+    imageUrl: string | null;
+    salePrice: number;
+    sourceId: string;
+    sourceName: string;
+  } | null;
+};

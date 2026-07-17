@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,14 +8,16 @@ import {
   ActivityIndicator,
   Image,
   Share,
+  Modal,
+  useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
-import { useDeal } from '@/lib/queries';
+import { useDeal, usePriceHistory, useAlerts } from '@/lib/queries';
 import { useIsSaved, useToggleSaved, useRecordView } from '@/lib/savedDeals';
 import { analytics, events } from '@/lib/analytics';
 import { postClick } from '@/lib/api';
@@ -24,6 +26,8 @@ import { formatFullPrice } from '@/lib/mockData';
 import { colors, spacing, radii } from '@/constants/theme';
 import GradientButton from '@/components/GradientButton';
 import { AdBanner } from '@/components/AdBanner';
+import PriceHistoryChart from '@/components/PriceHistoryChart';
+import PriceAlertModal from '@/components/PriceAlertModal';
 
 export default function DealDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,6 +37,14 @@ export default function DealDetailScreen() {
   const saved = useIsSaved(deal?.id);
   const toggleSaved = useToggleSaved();
   const recordView = useRecordView();
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  const { data: history, isLoading: historyLoading } = usePriceHistory(deal?.id);
+  const { data: alerts } = useAlerts();
+  const activeAlert = alerts?.find((a) => a.dealId === deal?.id && a.isActive) ?? null;
 
   // Log this deal to local view history + analytics once it has loaded.
   useEffect(() => {
@@ -136,7 +148,16 @@ export default function DealDetailScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.image}>
           {deal.imageUrl ? (
-            <Image source={{ uri: deal.imageUrl }} style={styles.imageInner} />
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.imageInner}
+              onPress={() => setViewerOpen(true)}
+            >
+              <Image source={{ uri: deal.imageUrl }} style={styles.imageInner} />
+              <View style={styles.zoomHint}>
+                <Ionicons name="expand-outline" size={16} color="#fff" />
+              </View>
+            </TouchableOpacity>
           ) : (
             <Ionicons name="pricetag" size={64} color={colors.muted} />
           )}
@@ -156,6 +177,29 @@ export default function DealDetailScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Nút cảnh báo giá — hiển thị trạng thái nếu đã đặt */}
+        <TouchableOpacity
+          style={[styles.alertBtn, activeAlert && styles.alertBtnActive]}
+          onPress={() => setAlertOpen(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name={activeAlert ? 'notifications' : 'notifications-outline'}
+            size={18}
+            color={activeAlert ? colors.primary : colors.text}
+          />
+          <Text style={[styles.alertBtnText, activeAlert && styles.alertBtnTextActive]}>
+            {activeAlert
+              ? t('alert.activeLabel', {
+                  price: formatFullPrice(activeAlert.targetPrice),
+                })
+              : t('alert.setLabel')}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+        </TouchableOpacity>
+
+        <PriceHistoryChart points={history ?? []} isLoading={historyLoading} />
 
         <View style={styles.metaBox}>
           <MetaRow label={t('deal.source')} value={deal.sourceName} />
@@ -181,6 +225,48 @@ export default function DealDetailScreen() {
       </View>
 
       <AdBanner safeBottom />
+
+      <PriceAlertModal
+        visible={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        deal={deal}
+        existingAlert={activeAlert}
+      />
+
+      {deal.imageUrl && (
+        <Modal
+          visible={viewerOpen}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => setViewerOpen(false)}
+        >
+          <View style={styles.viewerBackdrop}>
+            <ScrollView
+              style={styles.viewerScroll}
+              contentContainerStyle={styles.viewerContent}
+              maximumZoomScale={4}
+              minimumZoomScale={1}
+              centerContent
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+            >
+              <Image
+                source={{ uri: deal.imageUrl }}
+                style={{ width, height }}
+                resizeMode="contain"
+              />
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.viewerClose, { top: insets.top + spacing.sm }]}
+              onPress={() => setViewerOpen(false)}
+              hitSlop={12}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -228,6 +314,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imageInner: { width: '100%', height: '100%' },
+  zoomHint: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: radii.full,
+    padding: 6,
+  },
   badge: {
     position: 'absolute',
     top: spacing.md,
@@ -244,6 +338,24 @@ const styles = StyleSheet.create({
   oldRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.md, marginTop: spacing.xs },
   originalPrice: { fontSize: 14, color: colors.muted, textDecorationLine: 'line-through' },
   savings: { fontSize: 13, color: colors.success, fontWeight: '500' },
+  alertBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surface,
+  },
+  alertBtnActive: {
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}0D`,
+  },
+  alertBtnText: { flex: 1, fontSize: 14, fontWeight: '500', color: colors.text },
+  alertBtnTextActive: { color: colors.primary },
   metaBox: {
     backgroundColor: colors.surface,
     padding: spacing.md,
@@ -261,4 +373,17 @@ const styles = StyleSheet.create({
   },
   notFound: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   notFoundText: { color: colors.textSecondary },
+  viewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' },
+  viewerScroll: { flex: 1 },
+  viewerContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
+  viewerClose: {
+    position: 'absolute',
+    right: spacing.lg,
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

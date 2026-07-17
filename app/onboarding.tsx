@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { mockSources } from '@/lib/mockData';
+import { useSources } from '@/lib/queries';
 import { useCompleteOnboarding } from '@/lib/prefs';
 import { analytics, events } from '@/lib/analytics';
 import { putPreferences } from '@/lib/api';
@@ -31,9 +32,11 @@ const SLIDES: Slide[] = [
   { key: 'save', icon: 'heart-outline' },
 ];
 
-// The final page is an interactive source picker rather than a static slide.
+// The final page shows a read-only preview of the sources. We follow every shop
+// by default, but only surface a few here so the list stays short and inviting.
 const PICKER_KEY = 'sources';
 const PAGES = [...SLIDES.map((s) => s.key), PICKER_KEY];
+const PREVIEW_COUNT = 5;
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -43,16 +46,22 @@ export default function OnboardingScreen() {
   const [index, setIndex] = useState(0);
   const complete = useCompleteOnboarding();
 
-  // Seed selection from the shops flagged as followed by default.
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(mockSources.filter((s) => s.isFollowed).map((s) => s.id)),
-  );
+  // Everyone starts following every source; the picker step is read-only and just
+  // tells the user they can narrow this down later on the Sources tab. Use the live
+  // source list (falling back to the bundled mocks until it loads) so "follow all"
+  // really covers every shop, not just the handful hard-coded in mockData.
+  const { data: liveSources } = useSources();
+  const allSources = liveSources?.length ? liveSources : mockSources;
+  const allSourceIds = allSources.map((s) => s.id);
+  // Only a few are shown; the rest are summarised by a "+N more" line.
+  const previewSources = allSources.slice(0, PREVIEW_COUNT);
+  const moreCount = allSources.length - previewSources.length;
 
   const isLast = index === PAGES.length - 1;
 
   const finish = () => {
     if (complete.isPending) return;
-    const followed = Array.from(selected);
+    const followed = allSourceIds;
     analytics.capture(events.onboardingComplete, { sources: followed.length });
     // Sync the chosen sources to the backend (best-effort; also stored locally).
     getDeviceId()
@@ -71,13 +80,6 @@ export default function OnboardingScreen() {
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setIndex(Math.round(e.nativeEvent.contentOffset.x / width));
   };
-
-  const toggleSource = (id: string) =>
-    setSelected((prev) => {
-      const nextSet = new Set(prev);
-      nextSet.has(id) ? nextSet.delete(id) : nextSet.add(id);
-      return nextSet;
-    });
 
   return (
     <LinearGradient
@@ -112,27 +114,20 @@ export default function OnboardingScreen() {
                 <Text style={styles.headline}>{t('onboarding.pickTitle')}</Text>
                 <Text style={styles.subhead}>{t('onboarding.pickSub')}</Text>
                 <View style={styles.sourceList}>
-                  {mockSources.map((s) => {
-                    const on = selected.has(s.id);
-                    return (
-                      <TouchableOpacity
-                        key={s.id}
-                        style={[styles.sourceRow, on && styles.sourceRowOn]}
-                        onPress={() => toggleSource(s.id)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={[styles.avatar, { backgroundColor: s.logoColor }]}>
-                          <Text style={styles.avatarText}>{s.shortName}</Text>
-                        </View>
-                        <Text style={styles.sourceName}>{s.name}</Text>
-                        <Ionicons
-                          name={on ? 'checkmark-circle' : 'ellipse-outline'}
-                          size={22}
-                          color={on ? colors.primary : colors.muted}
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
+                  {previewSources.map((s) => (
+                    <View key={s.id} style={[styles.sourceRow, styles.sourceRowOn]}>
+                      <View style={[styles.avatar, { backgroundColor: s.logoColor }]}>
+                        <Text style={styles.avatarText}>{s.shortName}</Text>
+                      </View>
+                      <Text style={styles.sourceName}>{s.name}</Text>
+                      <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                    </View>
+                  ))}
+                  {moreCount > 0 && (
+                    <Text style={styles.moreSources}>
+                      {t('onboarding.moreSources', { count: moreCount })}
+                    </Text>
+                  )}
                 </View>
               </View>
             );
@@ -168,9 +163,7 @@ export default function OnboardingScreen() {
           onPress={next}
           label={
             isLast
-              ? selected.size > 0
-                ? t('onboarding.startWith', { count: selected.size })
-                : t('onboarding.start')
+              ? t('onboarding.startWith', { count: allSourceIds.length })
               : t('onboarding.next')
           }
         />
@@ -192,6 +185,12 @@ const styles = StyleSheet.create({
   skip: { fontSize: 14, color: colors.textSecondary },
   page: { flex: 1, paddingHorizontal: spacing.xl, justifyContent: 'center' },
   pageCentered: { alignItems: 'center' },
+  moreSources: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
   iconCircle: {
     width: 96,
     height: 96,

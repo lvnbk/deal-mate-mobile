@@ -21,6 +21,8 @@ export const events = {
   dealUnsave: 'deal_unsave',
   dealShare: 'deal_share',
   feedbackSubmit: 'feedback_submit',
+  alertSet: 'price_alert_set',
+  alertDelete: 'price_alert_delete',
 } as const;
 
 type Props = Record<string, string | number | boolean | null>;

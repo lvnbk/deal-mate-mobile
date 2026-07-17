@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   InterstitialAd,
@@ -8,16 +9,29 @@ import storage from './storage';
 import { useAdsRemoved } from './prefs';
 import { useFeatureFlag, flags } from './featureFlags';
 
+// AdMob ad units live per-platform (each unit belongs to an iOS or Android app
+// in the AdMob console), so we pick the right env var for the current platform.
+// Android keeps the original (unsuffixed) env vars so the already-released
+// Android build stays untouched across eas updates; iOS uses the new *_IOS vars.
+const interstitialEnvId = Platform.select({
+  ios: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID_IOS,
+  android: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID,
+});
+const bannerEnvId = Platform.select({
+  ios: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID_IOS,
+  android: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID,
+});
+
 // Interstitial unit: Google's test id in dev, the real unit id in production
 // builds. Falling back to TestIds keeps things safe if the env var is unset.
 const interstitialUnitId = __DEV__
   ? TestIds.INTERSTITIAL
-  : process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID || TestIds.INTERSTITIAL;
+  : interstitialEnvId || TestIds.INTERSTITIAL;
 
 // Banner unit shared by the pinned bottom banner.
 export const bannerUnitId = __DEV__
   ? TestIds.BANNER
-  : process.env.EXPO_PUBLIC_ADMOB_BANNER_ID || TestIds.BANNER;
+  : bannerEnvId || TestIds.BANNER;
 
 // Persisted running count of product taps (survives app restarts).
 const TAP_COUNT_KEY = '@dealmate/deal_tap_count';

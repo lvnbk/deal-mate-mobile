@@ -57,9 +57,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'notifications' : 'notifications-outline'} color={color} size={size} />
           ),
-          // Feature chưa implement — ẩn khỏi tab bar nhưng giữ nguyên route/code.
-          // Bỏ dòng href: null này để hiện lại tab khi làm xong màn notifications.
-          href: null,
         }}
       />
       <Tabs.Screen

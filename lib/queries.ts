@@ -1,18 +1,38 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchDeals, fetchDeal, fetchSources } from './api';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  fetchDeals,
+  fetchDeal,
+  fetchSources,
+  fetchPriceHistory,
+  fetchAlerts,
+  putAlert,
+  removeAlert,
+} from './api';
+import type { DealsPage } from './api';
 import type { Deal } from './types';
+import { getDeviceId } from './device';
 
 export const queryKeys = {
-  deals: (category: string, sourceIds: string[]) =>
-    ['deals', category, [...sourceIds].sort()] as const,
+  deals: (category: string, sourceIds: string[], q: string) =>
+    ['deals', category, [...sourceIds].sort(), q] as const,
   deal: (id: string) => ['deal', id] as const,
   sources: ['sources'] as const,
+  priceHistory: (id: string) => ['priceHistory', id] as const,
+  alerts: ['alerts'] as const,
 };
 
-export function useDeals(category: string, sourceIds: string[] = []) {
-  return useQuery({
-    queryKey: queryKeys.deals(category, sourceIds),
-    queryFn: () => fetchDeals({ category, sourceIds }),
+export function useDeals(category: string, sourceIds: string[] = [], q = '') {
+  return useInfiniteQuery({
+    queryKey: queryKeys.deals(category, sourceIds, q),
+    queryFn: ({ pageParam }) =>
+      fetchDeals({ category, sourceIds, q, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
   });
 }
 
@@ -32,12 +52,49 @@ export function useDeal(id: string) {
     enabled: !!id,
     // Reuse a deal already loaded in any list cache so detail opens instantly.
     placeholderData: () => {
-      const lists = queryClient.getQueriesData<Deal[]>({ queryKey: ['deals'] });
-      for (const [, deals] of lists) {
-        const match = deals?.find((d) => d.id === id);
-        if (match) return match;
+      const lists = queryClient.getQueriesData<{ pages: DealsPage[] }>({
+        queryKey: ['deals'],
+      });
+      for (const [, data] of lists) {
+        for (const page of data?.pages ?? []) {
+          const match = page.deals.find((d) => d.id === id);
+          if (match) return match;
+        }
       }
       return undefined;
     },
+  });
+}
+
+export function usePriceHistory(dealId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.priceHistory(dealId ?? ''),
+    queryFn: () => fetchPriceHistory(dealId!),
+    enabled: !!dealId,
+    staleTime: 30 * 60 * 1000, // giá chỉ đổi theo lượt scrape, cache thoải mái
+  });
+}
+
+export function useAlerts() {
+  return useQuery({
+    queryKey: queryKeys.alerts,
+    queryFn: async () => fetchAlerts(await getDeviceId()),
+  });
+}
+
+export function useCreateAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ dealId, targetPrice }: { dealId: string; targetPrice: number }) =>
+      putAlert(await getDeviceId(), dealId, targetPrice),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.alerts }),
+  });
+}
+
+export function useDeleteAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dealId: string) => removeAlert(await getDeviceId(), dealId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.alerts }),
   });
 }
