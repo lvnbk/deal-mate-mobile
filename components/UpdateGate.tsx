@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Image, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Updates from 'expo-updates';
 import { useTranslation } from 'react-i18next';
-import { colors, gradients, radii, spacing } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 
 // If the network is slow or the update server is unreachable, don't block the
 // user forever — fall through to the app after this long.
@@ -31,11 +31,11 @@ const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
  * Gates the app behind an EAS Update (OTA) check on cold start. While it checks
  * and — if needed — downloads a new JS bundle, it shows a branded waiting
  * screen (same gradient as onboarding/splash) with status text and a progress
- * bar, then reloads into the new version. In dev / Expo Go, or on any error, it
- * falls straight through to the app.
+ * bar, then reloads into the new version.
  */
 export default function UpdateGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
+  const [styles, theme] = useStyles(createStyles);
   const [phase, setPhase] = useState<Phase>(Updates.isEnabled ? 'checking' : 'done');
   const progress = useRef(new Animated.Value(0)).current;
 
@@ -55,10 +55,8 @@ export default function UpdateGate({ children }: { children: ReactNode }) {
         await Updates.fetchUpdateAsync();
         if (cancelled) return;
         setPhase('applying');
-        // Restarts the app into the freshly downloaded bundle.
         await Updates.reloadAsync();
       } catch {
-        // No update, offline, or timed out — just continue into the app.
         if (!cancelled) setPhase('done');
       }
     })();
@@ -68,17 +66,12 @@ export default function UpdateGate({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // The native splash is held up by AnimatedSplash (which isn't mounted yet
-  // while we gate). Once we're actually downloading, drop it so the progress
-  // screen is visible. During the quick `checking` phase we leave the native
-  // splash up to avoid a flash on the common no-update path.
   useEffect(() => {
     if (phase === 'downloading' || phase === 'applying') {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [phase]);
 
-  // Drive the progress bar toward the current phase's target.
   useEffect(() => {
     Animated.timing(progress, {
       toValue: PHASE_PROGRESS[phase],
@@ -101,9 +94,11 @@ export default function UpdateGate({ children }: { children: ReactNode }) {
     outputRange: ['0%', '100%'],
   });
 
+  const gradient = theme.isDark ? theme.gradients.backgroundDark : theme.gradients.background;
+
   return (
     <LinearGradient
-      colors={gradients.background}
+      colors={gradient}
       locations={[0, 0.55, 1]}
       start={{ x: 0.9, y: 1 }}
       end={{ x: 0.1, y: 0 }}
@@ -118,31 +113,36 @@ export default function UpdateGate({ children }: { children: ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
-  fill: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
+const createStyles = (t: Theme) => ({
+  fill: {
+    flex: 1,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingHorizontal: t.spacing.xl,
+  },
   logo: {
     width: 128,
     height: 128,
-    borderRadius: radii.lg * 2,
-    marginBottom: spacing.xl,
+    borderRadius: 28,
+    marginBottom: t.spacing.xl,
   },
   track: {
-    width: '70%',
+    width: '70%' as const,
     maxWidth: 280,
     height: 6,
-    borderRadius: radii.full,
-    backgroundColor: 'rgba(190, 28, 45, 0.15)',
-    overflow: 'hidden',
+    borderRadius: t.radii.full,
+    backgroundColor: t.colors.primaryBg,
+    overflow: 'hidden' as const,
   },
   bar: {
-    height: '100%',
-    borderRadius: radii.full,
-    backgroundColor: colors.primary,
+    height: '100%' as const,
+    borderRadius: t.radii.full,
+    backgroundColor: t.colors.primary,
   },
   label: {
-    marginTop: spacing.lg,
+    marginTop: t.spacing.lg,
     fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
+    color: t.colors.textSecondary,
+    textAlign: 'center' as const,
   },
 });

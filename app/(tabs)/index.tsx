@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  StyleSheet,
   Text,
   TextInput,
   View,
   RefreshControl,
   ScrollView,
   TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,11 +21,12 @@ import { useDeals, useSources } from '@/lib/queries';
 import { useFollowedSources } from '@/lib/prefs';
 import { useOpenDeal } from '@/lib/ads';
 import { mockCategories } from '@/lib/mockData';
-import { colors, spacing, radii } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 
 export default function HomeScreen() {
   const openDeal = useOpenDeal();
   const { t } = useTranslation();
+  const [styles, theme] = useStyles(createStyles);
   const [category, setCategory] = useState('all');
   const [sourceIds, setSourceIds] = useState<string[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -35,19 +36,14 @@ export default function HomeScreen() {
   const { data: followedIds } = useFollowedSources();
   const { data: sources = [] } = useSources();
 
-  // Debounce the search box so we don't refetch on every keystroke.
   const [debouncedQuery, setDebouncedQuery] = useState('');
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQuery(search.trim()), 350);
     return () => clearTimeout(id);
   }, [search]);
 
-  // Which shops to ask the server for: the explicitly-selected chips if any,
-  // otherwise the followed shops (null = not chosen yet → pass none = everything).
   const effectiveSources = sourceIds.length ? sourceIds : followedIds ?? [];
 
-  // Server-side pagination: category / shop / search all run on the backend and
-  // pages stream in as the user scrolls.
   const {
     data,
     isLoading,
@@ -66,8 +62,6 @@ export default function HomeScreen() {
 
   const query = debouncedQuery;
 
-  // Followed shops as filter chips. Independent of the current result so tapping
-  // one shop never makes the other chips disappear.
   const availableShops = useMemo(
     () => (followedIds ? sources.filter((s) => followedIds.includes(s.id)) : []),
     [followedIds, sources],
@@ -79,12 +73,11 @@ export default function HomeScreen() {
 
   const selectCategory = (id: string) => {
     setCategory(id);
-    setSourceIds([]); // shop selection is category-specific
+    setSourceIds([]);
   };
 
   const openSearch = () => {
     setSearchOpen(true);
-    // Focus once the input has mounted.
     requestAnimationFrame(() => searchRef.current?.focus());
   };
 
@@ -104,20 +97,20 @@ export default function HomeScreen() {
       <View style={styles.header}>
         {searchOpen ? (
           <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={18} color={colors.muted} />
+            <Ionicons name="search-outline" size={18} color={theme.colors.muted} />
             <TextInput
               ref={searchRef}
               style={styles.searchInput}
               value={search}
               onChangeText={setSearch}
               placeholder={t('home.searchPlaceholder')}
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={theme.colors.muted}
               returnKeyType="search"
               autoCorrect={false}
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch('')} hitSlop={8}>
-                <Ionicons name="close-circle" size={18} color={colors.muted} />
+                <Ionicons name="close-circle" size={18} color={theme.colors.muted} />
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={closeSearch} hitSlop={8}>
@@ -126,15 +119,29 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
-            <Text style={styles.title}>{t('home.title')}</Text>
-            <TouchableOpacity onPress={openSearch} hitSlop={8}>
-              <Ionicons name="search-outline" size={22} color={colors.text} />
+            <View style={styles.titleWrap}>
+              <Text style={styles.eyebrow}>{t('home.eyebrow', 'Hôm nay có gì mới')}</Text>
+              <Text style={styles.title}>{t('home.title')}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={openSearch}
+              hitSlop={8}
+              style={styles.searchButton}
+              accessibilityRole="button"
+              accessibilityLabel={t('home.searchPlaceholder')}
+            >
+              <Ionicons name="search-outline" size={20} color={theme.colors.text} />
             </TouchableOpacity>
           </>
         )}
       </View>
 
-      <View style={styles.chipsWrap}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipsScroll}
+        contentContainerStyle={styles.chipsWrap}
+      >
         {mockCategories.map((cat) => (
           <FilterChip
             key={cat.id}
@@ -143,7 +150,7 @@ export default function HomeScreen() {
             onPress={() => selectCategory(cat.id)}
           />
         ))}
-      </View>
+      </ScrollView>
 
       {availableShops.length > 1 && (
         <ScrollView
@@ -168,6 +175,7 @@ export default function HomeScreen() {
           <DealListSkeleton />
         ) : isError ? (
           <View style={styles.empty}>
+            <Ionicons name="cloud-offline-outline" size={44} color={theme.colors.muted} />
             <Text style={styles.emptyText}>{t('home.loadError')}</Text>
             <TouchableOpacity onPress={() => refetch()} style={styles.retry}>
               <Text style={styles.retryText}>{t('home.retry')}</Text>
@@ -184,17 +192,22 @@ export default function HomeScreen() {
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
             refreshControl={
-              <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={refetch}
+                tintColor={theme.colors.primary}
+              />
             }
             ListFooterComponent={
               isFetchingNextPage ? (
                 <View style={styles.footer}>
-                  <ActivityIndicator color={colors.muted} />
+                  <ActivityIndicator color={theme.colors.primary} />
                 </View>
               ) : null
             }
             ListEmptyComponent={
               <View style={styles.empty}>
+                <Ionicons name="search-outline" size={44} color={theme.colors.muted} />
                 <Text style={styles.emptyText}>
                   {query ? t('home.searchEmpty', { query }) : t('home.empty')}
                 </Text>
@@ -209,52 +222,103 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (t: Theme) => ({
+  container: { flex: 1, backgroundColor: t.colors.bg },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: t.spacing.lg,
+    paddingTop: t.spacing.md,
+    paddingBottom: t.spacing.md,
+    gap: t.spacing.md,
   },
-  title: { fontSize: 22, fontWeight: '600', color: colors.text },
+  titleWrap: { flex: 1 },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    color: t.colors.primary,
+    marginBottom: 2,
+  },
+  title: {
+    ...t.typography.h2,
+    color: t.colors.text,
+  },
+  searchButton: {
+    width: 40,
+    height: 40,
+    borderRadius: t.radii.full,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: t.colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.colors.border,
+  },
   searchBar: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.sm,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.radii.lg,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm + 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.colors.border,
   },
-  searchInput: { flex: 1, fontSize: 15, color: colors.text, padding: 0 },
-  searchCancel: { fontSize: 14, color: colors.accent, fontWeight: '500' },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: t.colors.text,
+    padding: 0,
+  },
+  searchCancel: {
+    fontSize: 14,
+    color: t.colors.primary,
+    fontWeight: '600' as const,
+  },
   body: { flex: 1 },
   chipsScroll: { flexGrow: 0, flexShrink: 0 },
   chipsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    gap: spacing.sm,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.md,
+    gap: t.spacing.sm,
   },
   chips: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    gap: spacing.sm,
+    alignItems: 'center' as const,
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.md,
+    gap: t.spacing.sm,
   },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
-  footer: { paddingVertical: spacing.lg },
-  empty: { alignItems: 'center', paddingVertical: spacing.xl * 2 },
-  emptyText: { color: colors.muted },
+  list: {
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.lg,
+  },
+  footer: { paddingVertical: t.spacing.lg },
+  empty: {
+    alignItems: 'center' as const,
+    paddingVertical: t.spacing.xxl,
+    gap: t.spacing.sm,
+  },
+  emptyText: {
+    ...t.typography.body,
+    color: t.colors.textSecondary,
+    textAlign: 'center' as const,
+  },
   retry: {
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    marginTop: t.spacing.sm,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.sm + 2,
+    borderRadius: t.radii.full,
+    borderWidth: 1,
+    borderColor: t.colors.primary,
   },
-  retryText: { color: colors.accent, fontWeight: '500' },
+  retryText: {
+    color: t.colors.primary,
+    fontWeight: '600' as const,
+  },
 });

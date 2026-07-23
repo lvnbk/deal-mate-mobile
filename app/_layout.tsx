@@ -5,53 +5,49 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider } from '@tanstack/react-query';
 import mobileAds from 'react-native-google-mobile-ads';
 import Toast from 'react-native-toast-message';
-import '@/lib/i18n'; // initialize i18next (default: Vietnamese)
+import '@/lib/i18n';
 import { queryClient } from '@/lib/queryClient';
 import { usePushNotifications } from '@/lib/notifications';
 import { initInterstitial } from '@/lib/ads';
 import { initPurchases } from '@/lib/purchases';
 import { initFeatureFlags } from '@/lib/featureFlags';
+import { useAppTheme } from '@/constants/theme';
 import AnimatedSplash from '@/components/AnimatedSplash';
 import UpdateGate from '@/components/UpdateGate';
 
 export default function RootLayout() {
   usePushNotifications();
+  const theme = useAppTheme();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Keep the branded splash on screen briefly so the logo registers, then
-    // fade it out. Startup init below is fire-and-forget, so this is purely a
-    // minimum display window rather than a real dependency gate.
     const t = setTimeout(() => setReady(true), 800);
     return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
-    // Pull the latest remote feature flags (show_banner / show_iap).
     initFeatureFlags();
-
-    // Configure in-app purchases (RevenueCat) so the ads-removed entitlement
-    // is known before any ad renders.
     initPurchases();
 
-    // Initialize the AdMob SDK once at startup.
     mobileAds()
       .initialize()
       .then(() => {
-        // Preload the first interstitial ad so the first gated tap is instant.
         initInterstitial();
       })
-      .catch(() => {
-        // Non-fatal — ads simply won't render if init fails.
-      });
+      .catch(() => {});
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.colors.bg }}>
         <UpdateGate>
           <AnimatedSplash ready={ready}>
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: theme.colors.bg },
+              }}
+            >
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
               <Stack.Screen name="deal/[id]" />
@@ -60,7 +56,7 @@ export default function RootLayout() {
             </Stack>
           </AnimatedSplash>
         </UpdateGate>
-        <StatusBar style="auto" />
+        <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       </GestureHandlerRootView>
       <Toast />
     </QueryClientProvider>

@@ -17,6 +17,11 @@ const NOTIF_ENABLED_KEY = '@dealmate/notifications_enabled';
 const NOTIF_HISTORY_KEY = '@dealmate/notification_history';
 const NOTIF_HISTORY_LIMIT = 50;
 
+// Identifier của cú tap đã điều hướng gần nhất. Dùng để chống việc cold-start
+// (getLastNotificationResponseAsync trả về response tồn tại qua các phiên) mở
+// lại deal cũ mỗi lần bật app từ icon.
+const LAST_HANDLED_RESPONSE_KEY = '@dealmate/last_handled_notif_response';
+
 export type ReceivedNotification = {
   id: string; // notification request identifier — dùng để dedup
   title: string;
@@ -142,18 +147,42 @@ export async function disablePush(): Promise<void> {
   }
 }
 
+// Identifiers đã điều hướng trong phiên hiện tại — chặn xử lý trùng khi hook
+// useLastNotificationResponse re-render với cùng một response.
+const handledInSession = new Set<string>();
+
+/**
+ * Lưu lịch sử + điều hướng tới deal liên quan cho một notification response.
+ * Persist identifier để cold-start không mở lại deal cũ mỗi lần bật app.
+ */
+async function handleResponse(
+  response: Notifications.NotificationResponse,
+  router: ReturnType<typeof useRouter>,
+): Promise<void> {
+  void recordNotification(response.notification);
+  await AsyncStorage.setItem(
+    LAST_HANDLED_RESPONSE_KEY,
+    response.notification.request.identifier,
+  );
+  const dealId = response.notification.request.content.data?.dealId;
+  if (typeof dealId === 'string') router.push(`/deal/${dealId}`);
+}
+
 /**
  * Root-level hook: registers the push token, syncs it to the backend keyed by
  * device id, and routes notification taps to the relevant deal.
  */
 export function usePushNotifications() {
   const router = useRouter();
-  const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
   const receivedListener = useRef<Notifications.Subscription | undefined>(undefined);
+
+  // Cú tap gần nhất — bao gồm cả cú tap MỞ app từ trạng thái bị kill (cold start),
+  // thứ mà addNotificationResponseReceivedListener không bắt được. Hook này cũng
+  // cập nhật khi tap lúc app đang chạy/nền, nên nó phụ trách toàn bộ điều hướng.
+  const lastResponse = Notifications.useLastNotificationResponse();
 
   useEffect(() => {
     let cancelled = false;
-
     (async () => {
       if (!(await isPushEnabled())) return; // user turned deal notifications off
       const token = await registerForPushToken();
@@ -173,20 +202,24 @@ export function usePushNotifications() {
       },
     );
 
-    // Tap on a notification → lưu lịch sử (app có thể vừa bị kill nên listener
-    // received chưa chạy) rồi mở deal liên quan.
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        void recordNotification(response.notification);
-        const dealId = response.notification.request.content.data?.dealId;
-        if (typeof dealId === 'string') router.push(`/deal/${dealId}`);
-      },
-    );
-
     return () => {
       cancelled = true;
-      responseListener.current?.remove();
       receivedListener.current?.remove();
     };
-  }, [router]);
+  }, []);
+
+  useEffect(() => {
+    if (!lastResponse) return;
+    const id = lastResponse.notification.request.identifier;
+    if (handledInSession.has(id)) return; // hook re-render với cùng response
+    handledInSession.add(id);
+
+    (async () => {
+      // Bỏ qua nếu response này đã được xử lý ở phiên trước (cold-start trả về
+      // response tồn tại qua các lần bật app) → tránh mở lại deal cũ.
+      const lastHandled = await AsyncStorage.getItem(LAST_HANDLED_RESPONSE_KEY);
+      if (id === lastHandled) return;
+      await handleResponse(lastResponse, router);
+    })();
+  }, [lastResponse, router]);
 }

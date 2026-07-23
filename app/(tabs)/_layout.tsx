@@ -1,11 +1,15 @@
+import { StyleSheet } from 'react-native';
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useOnboarded } from '@/lib/prefs';
-import { colors } from '@/constants/theme';
+import { useAppTheme } from '@/constants/theme';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   const { data: onboarded, isLoading } = useOnboarded();
   if (isLoading) return null;
@@ -15,11 +19,20 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.muted,
         tabBarStyle: {
-          borderTopColor: colors.border,
-          borderTopWidth: 0.5,
+          backgroundColor: theme.colors.bg,
+          borderTopColor: theme.colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          height: 60 + insets.bottom,
+          paddingTop: 6,
+          paddingBottom: 6 + insets.bottom,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          letterSpacing: 0.2,
         },
       }}
     >
@@ -37,7 +50,11 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.sources'),
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'storefront' : 'storefront-outline'} color={color} size={size} />
+            <Ionicons
+              name={focused ? 'storefront' : 'storefront-outline'}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -55,7 +72,11 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.notifications'),
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'notifications' : 'notifications-outline'} color={color} size={size} />
+            <Ionicons
+              name={focused ? 'notifications' : 'notifications-outline'}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -64,7 +85,11 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.profile'),
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size} />
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />

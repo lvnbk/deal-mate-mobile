@@ -1,13 +1,7 @@
 import { ReactNode } from 'react';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  ViewStyle,
-  StyleProp,
-} from 'react-native';
+import { Text, TouchableOpacity, ViewStyle, StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients, radii } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 
 type Props = {
   label: string;
@@ -19,19 +13,22 @@ type Props = {
 };
 
 /**
- * Primary call-to-action button rendered with the brand primary gradient
- * (colors.primary → colors.primaryLight).
+ * Primary call-to-action button rendered with the brand primary gradient.
+ * Includes a subtle brand-tinted shadow so it lifts above the surface.
  */
 export default function GradientButton({ label, onPress, disabled, icon, style }: Props) {
+  const [styles, t] = useStyles(createStyles);
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.85}
       disabled={disabled}
-      style={[style, disabled && styles.disabled]}
+      style={[styles.wrapper, style, disabled && styles.disabled]}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
     >
       <LinearGradient
-        colors={gradients.primary}
+        colors={t.gradients.primary}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.button}
@@ -43,15 +40,24 @@ export default function GradientButton({ label, onPress, disabled, icon, style }
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: radii.lg,
+const createStyles = (t: Theme) => ({
+  wrapper: {
+    borderRadius: t.radii.lg,
+    ...t.elevation.brand,
   },
-  label: { color: colors.onPrimary, fontSize: 15, fontWeight: '600' },
+  button: {
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.sm,
+    paddingVertical: 15,
+    borderRadius: t.radii.lg,
+  },
+  label: {
+    color: t.colors.onPrimary,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    letterSpacing: 0.1,
+  },
   disabled: { opacity: 0.5 },
 });

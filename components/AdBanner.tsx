@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bannerUnitId } from '@/lib/ads';
 import { useAdsRemoved } from '@/lib/prefs';
 import { useFeatureFlag, flags } from '@/lib/featureFlags';
-import { colors } from '@/constants/theme';
+import { useAppTheme } from '@/constants/theme';
 
 type Props = {
   /**
@@ -25,13 +25,23 @@ export function AdBanner({ safeBottom = false }: Props) {
   const insets = useSafeAreaInsets();
   const { data: adsRemoved } = useAdsRemoved();
   const showAds = useFeatureFlag(flags.showAds);
+  const t = useAppTheme();
 
   // No banner when ads disabled remotely, purchased away, or if it can't load.
   if (!showAds || adsRemoved || failed) return null;
 
   return (
     <View
-      style={[styles.container, safeBottom && { paddingBottom: insets.bottom }]}
+      style={[
+        {
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: t.colors.bg,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: t.colors.border,
+        },
+        safeBottom && { paddingBottom: insets.bottom },
+      ]}
     >
       <BannerAd
         unitId={bannerUnitId}
@@ -45,13 +55,3 @@ export function AdBanner({ safeBottom = false }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-    borderTopWidth: 0.5,
-    borderTopColor: colors.border,
-  },
-});

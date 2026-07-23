@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  StyleSheet,
   Text,
   View,
   ScrollView,
@@ -9,6 +8,7 @@ import {
   Image,
   Share,
   Modal,
+  StyleSheet,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,7 +23,7 @@ import { analytics, events } from '@/lib/analytics';
 import { postClick } from '@/lib/api';
 import { getDeviceId } from '@/lib/device';
 import { formatFullPrice } from '@/lib/mockData';
-import { colors, spacing, radii } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 import GradientButton from '@/components/GradientButton';
 import { AdBanner } from '@/components/AdBanner';
 import PriceHistoryChart from '@/components/PriceHistoryChart';
@@ -33,6 +33,7 @@ export default function DealDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { t } = useTranslation();
+  const [styles, theme] = useStyles(createStyles);
   const { data: deal, isLoading } = useDeal(id);
   const saved = useIsSaved(deal?.id);
   const toggleSaved = useToggleSaved();
@@ -46,12 +47,10 @@ export default function DealDetailScreen() {
   const { data: alerts } = useAlerts();
   const activeAlert = alerts?.find((a) => a.dealId === deal?.id && a.isActive) ?? null;
 
-  // Log this deal to local view history + analytics once it has loaded.
   useEffect(() => {
     if (!deal) return;
     recordView.mutate(deal);
     analytics.capture(events.dealView, { dealId: deal.id, sourceId: deal.sourceId });
-    // Only re-run when the deal identity changes, not on every mutation render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deal?.id]);
 
@@ -92,7 +91,6 @@ export default function DealDetailScreen() {
   const openDeal = async () => {
     if (!deal) return;
     analytics.capture(events.dealOpen, { dealId: deal.id, sourceId: deal.sourceId });
-    // Record the affiliate click server-side (best-effort, don't block opening).
     getDeviceId()
       .then((deviceId) => postClick(deal.id, deviceId))
       .catch(() => {});
@@ -103,7 +101,7 @@ export default function DealDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator style={styles.loading} />
+        <ActivityIndicator style={styles.loading} color={theme.colors.primary} />
       </SafeAreaView>
     );
   }
@@ -112,8 +110,8 @@ export default function DealDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+            <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
         <View style={styles.notFound}>
@@ -128,19 +126,19 @@ export default function DealDetailScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.topBarActions}>
-          <TouchableOpacity onPress={onToggleSave}>
+          <TouchableOpacity onPress={onToggleSave} style={styles.iconBtn}>
             <Ionicons
               name={saved ? 'heart' : 'heart-outline'}
-              size={24}
-              color={saved ? colors.danger : colors.text}
+              size={22}
+              color={saved ? theme.colors.primary : theme.colors.text}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={onShare}>
-            <Ionicons name="share-outline" size={24} color={colors.text} />
+          <TouchableOpacity onPress={onShare} style={styles.iconBtn}>
+            <Ionicons name="share-outline" size={22} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -159,7 +157,7 @@ export default function DealDetailScreen() {
               </View>
             </TouchableOpacity>
           ) : (
-            <Ionicons name="pricetag" size={64} color={colors.muted} />
+            <Ionicons name="pricetag" size={64} color={theme.colors.muted} />
           )}
           <View style={styles.badge}>
             <Text style={styles.badgeText}>-{deal.discountPercent}%</Text>
@@ -172,23 +170,32 @@ export default function DealDetailScreen() {
           <Text style={styles.salePrice}>{formatFullPrice(deal.salePrice)}</Text>
           <View style={styles.oldRow}>
             <Text style={styles.originalPrice}>{formatFullPrice(deal.originalPrice)}</Text>
-            <Text style={styles.savings}>
-              {t('deal.savings', { amount: formatFullPrice(savings) })}
-            </Text>
+            <View style={styles.savingsPill}>
+              <Ionicons name="trending-down" size={12} color={theme.colors.success} />
+              <Text style={styles.savings}>
+                {t('deal.savings', { amount: formatFullPrice(savings) })}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Nút cảnh báo giá — hiển thị trạng thái nếu đã đặt */}
         <TouchableOpacity
           style={[styles.alertBtn, activeAlert && styles.alertBtnActive]}
           onPress={() => setAlertOpen(true)}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
-          <Ionicons
-            name={activeAlert ? 'notifications' : 'notifications-outline'}
-            size={18}
-            color={activeAlert ? colors.primary : colors.text}
-          />
+          <View
+            style={[
+              styles.alertIconWrap,
+              activeAlert && styles.alertIconWrapActive,
+            ]}
+          >
+            <Ionicons
+              name={activeAlert ? 'notifications' : 'notifications-outline'}
+              size={18}
+              color={activeAlert ? theme.colors.primary : theme.colors.textSecondary}
+            />
+          </View>
           <Text style={[styles.alertBtnText, activeAlert && styles.alertBtnTextActive]}>
             {activeAlert
               ? t('alert.activeLabel', {
@@ -196,19 +203,25 @@ export default function DealDetailScreen() {
                 })
               : t('alert.setLabel')}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.muted} />
         </TouchableOpacity>
 
         <PriceHistoryChart points={history ?? []} isLoading={historyLoading} />
 
         <View style={styles.metaBox}>
-          <MetaRow label={t('deal.source')} value={deal.sourceName} />
           <MetaRow
+            styles={styles}
+            label={t('deal.source')}
+            value={deal.sourceName}
+          />
+          <MetaRow
+            styles={styles}
             label={t('deal.category')}
             value={t(`categories.${deal.category}`, deal.category)}
           />
           {deal.validUntil && (
             <MetaRow
+              styles={styles}
               label={t('deal.endsAt')}
               value={new Date(deal.validUntil).toLocaleDateString('vi-VN')}
             />
@@ -220,7 +233,9 @@ export default function DealDetailScreen() {
         <GradientButton
           label={t('deal.viewAt', { source: deal.sourceName })}
           onPress={openDeal}
-          icon={<Ionicons name="open-outline" size={18} color={colors.onPrimary} />}
+          icon={
+            <Ionicons name="open-outline" size={18} color={theme.colors.onPrimary} />
+          }
         />
       </View>
 
@@ -258,11 +273,11 @@ export default function DealDetailScreen() {
               />
             </ScrollView>
             <TouchableOpacity
-              style={[styles.viewerClose, { top: insets.top + spacing.sm }]}
+              style={[styles.viewerClose, { top: insets.top + theme.spacing.sm }]}
               onPress={() => setViewerOpen(false)}
               hitSlop={12}
             >
-              <Ionicons name="close" size={28} color="#fff" />
+              <Ionicons name="close" size={26} color="#fff" />
             </TouchableOpacity>
           </View>
         </Modal>
@@ -271,7 +286,15 @@ export default function DealDetailScreen() {
   );
 }
 
-function MetaRow({ label, value }: { label: string; value: string }) {
+function MetaRow({
+  styles,
+  label,
+  value,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  label: string;
+  value: string;
+}) {
   return (
     <View style={styles.metaRow}>
       <Text style={styles.metaLabel}>{label}</Text>
@@ -280,110 +303,203 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/**
- * Wraps the product URL with an affiliate parameter.
- * Replace this stub with real affiliate deep-link logic per source.
- */
-function buildAffiliateUrl(sourceId: string, url: string): string {
-  // Example (real logic goes on the backend, this can just proxy):
-  // return `${API_BASE}/redirect?deal_id=${id}` — backend handles the affiliate wrap.
+function buildAffiliateUrl(_sourceId: string, url: string): string {
   return url;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (t: Theme) => ({
+  container: { flex: 1, backgroundColor: t.colors.bg },
   loading: { marginTop: 40 },
   topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
   },
-  topBarActions: { flexDirection: 'row', gap: spacing.lg },
+  topBarActions: {
+    flexDirection: 'row' as const,
+    gap: t.spacing.sm,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: t.radii.full,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: t.colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.colors.border,
+  },
   scroll: { flex: 1 },
-  content: { padding: spacing.lg, paddingBottom: spacing.xl },
-  image: {
-    height: 220,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    position: 'relative',
-    overflow: 'hidden',
+  content: {
+    padding: t.spacing.lg,
+    paddingBottom: t.spacing.xl,
   },
-  imageInner: { width: '100%', height: '100%' },
+  image: {
+    height: 240,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.radii.xl,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: t.spacing.lg,
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.colors.border,
+  },
+  imageInner: {
+    width: '100%' as const,
+    height: '100%' as const,
+  },
   zoomHint: {
-    position: 'absolute',
-    bottom: spacing.sm,
-    right: spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: radii.full,
+    position: 'absolute' as const,
+    bottom: t.spacing.sm,
+    right: t.spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: t.radii.full,
     padding: 6,
   },
   badge: {
-    position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
-    backgroundColor: colors.danger,
-    paddingHorizontal: spacing.md,
+    position: 'absolute' as const,
+    top: t.spacing.md,
+    left: t.spacing.md,
+    backgroundColor: t.colors.danger,
+    paddingHorizontal: t.spacing.md,
     paddingVertical: 4,
-    borderRadius: radii.sm,
+    borderRadius: t.radii.sm,
+    ...t.elevation.card,
   },
-  badgeText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: '500', color: colors.text, marginBottom: spacing.md, lineHeight: 24 },
-  priceBlock: { marginBottom: spacing.lg },
-  salePrice: { fontSize: 26, fontWeight: '600', color: colors.danger },
-  oldRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.md, marginTop: spacing.xs },
-  originalPrice: { fontSize: 14, color: colors.muted, textDecorationLine: 'line-through' },
-  savings: { fontSize: 13, color: colors.success, fontWeight: '500' },
+  badgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
+  },
+  title: {
+    ...t.typography.h3,
+    color: t.colors.text,
+    marginBottom: t.spacing.md,
+    lineHeight: 26,
+  },
+  priceBlock: {
+    marginBottom: t.spacing.lg,
+  },
+  salePrice: {
+    fontSize: 30,
+    fontWeight: '800' as const,
+    color: t.colors.danger,
+    letterSpacing: -0.5,
+  },
+  oldRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.md,
+    marginTop: t.spacing.sm,
+    flexWrap: 'wrap' as const,
+  },
+  originalPrice: {
+    fontSize: 14,
+    color: t.colors.muted,
+    textDecorationLine: 'line-through' as const,
+  },
+  savingsPill: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    backgroundColor: t.colors.successBg,
+    paddingHorizontal: t.spacing.sm,
+    paddingVertical: 3,
+    borderRadius: t.radii.full,
+  },
+  savings: {
+    fontSize: 12,
+    color: t.colors.success,
+    fontWeight: '700' as const,
+  },
   alertBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.lg,
-    backgroundColor: colors.surface,
+    borderColor: t.colors.border,
+    borderRadius: t.radii.lg,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.md,
+    marginBottom: t.spacing.lg,
+    backgroundColor: t.colors.surface,
   },
   alertBtnActive: {
-    borderColor: colors.primary,
-    backgroundColor: `${colors.primary}0D`,
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primaryBg,
   },
-  alertBtnText: { flex: 1, fontSize: 14, fontWeight: '500', color: colors.text },
-  alertBtnTextActive: { color: colors.primary },
+  alertIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: t.colors.surfaceMuted,
+  },
+  alertIconWrapActive: {
+    backgroundColor: t.colors.bg,
+  },
+  alertBtnText: {
+    flex: 1,
+    ...t.typography.bodyStrong,
+    color: t.colors.text,
+  },
+  alertBtnTextActive: { color: t.colors.primary },
   metaBox: {
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    gap: spacing.sm,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.md + 2,
+    borderRadius: t.radii.lg,
+    gap: t.spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: t.colors.border,
   },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  metaLabel: { color: colors.textSecondary, fontSize: 13 },
-  metaValue: { color: colors.text, fontSize: 13, fontWeight: '500' },
+  metaRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+  },
+  metaLabel: {
+    ...t.typography.caption,
+    color: t.colors.textSecondary,
+  },
+  metaValue: {
+    ...t.typography.captionStrong,
+    color: t.colors.text,
+  },
   ctaContainer: {
-    padding: spacing.lg,
-    backgroundColor: colors.bg,
-    borderTopWidth: 0.5,
-    borderTopColor: colors.border,
+    padding: t.spacing.lg,
+    backgroundColor: t.colors.bg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: t.colors.border,
   },
-  notFound: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  notFoundText: { color: colors.textSecondary },
-  viewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' },
+  notFound: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  notFoundText: { color: t.colors.textSecondary },
+  viewerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+  },
   viewerScroll: { flex: 1 },
-  viewerContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
+  viewerContent: {
+    flexGrow: 1,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
   viewerClose: {
-    position: 'absolute',
-    right: spacing.lg,
+    position: 'absolute' as const,
+    right: t.spacing.lg,
     width: 40,
     height: 40,
-    borderRadius: radii.full,
+    borderRadius: t.radii.full,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
 });

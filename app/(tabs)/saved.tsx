@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { FlatList, Text, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -7,13 +7,14 @@ import { DealCard } from '@/components/DealCard';
 import { FilterChip } from '@/components/FilterChip';
 import { useSavedDeals, useRecentDeals, useClearHistory } from '@/lib/savedDeals';
 import { useOpenDeal } from '@/lib/ads';
-import { colors, spacing } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 
 type Tab = 'saved' | 'history';
 
 export default function SavedScreen() {
   const openDeal = useOpenDeal();
   const { t } = useTranslation();
+  const [styles, theme] = useStyles(createStyles);
   const [tab, setTab] = useState<Tab>('saved');
   const { data: saved = [] } = useSavedDeals();
   const { data: recent = [] } = useRecentDeals();
@@ -26,7 +27,7 @@ export default function SavedScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>{t('saved.title')}</Text>
         {tab === 'history' && recent.length > 0 && (
-          <TouchableOpacity onPress={() => clearHistory.mutate()}>
+          <TouchableOpacity onPress={() => clearHistory.mutate()} hitSlop={8}>
             <Text style={styles.clear}>{t('saved.clearHistory')}</Text>
           </TouchableOpacity>
         )}
@@ -47,11 +48,13 @@ export default function SavedScreen() {
 
       {deals.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons
-            name={tab === 'saved' ? 'heart-outline' : 'time-outline'}
-            size={48}
-            color={colors.muted}
-          />
+          <View style={styles.emptyIcon}>
+            <Ionicons
+              name={tab === 'saved' ? 'heart-outline' : 'time-outline'}
+              size={36}
+              color={theme.colors.primary}
+            />
+          </View>
           <Text style={styles.emptyTitle}>
             {tab === 'saved' ? t('saved.emptySavedTitle') : t('saved.emptyHistoryTitle')}
           </Text>
@@ -73,31 +76,59 @@ export default function SavedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (t: Theme) => ({
+  container: { flex: 1, backgroundColor: t.colors.bg },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: t.spacing.lg,
+    paddingTop: t.spacing.md,
+    paddingBottom: t.spacing.md,
   },
-  title: { fontSize: 22, fontWeight: '600', color: colors.text },
-  clear: { fontSize: 13, color: colors.accent, fontWeight: '500' },
+  title: {
+    ...t.typography.h2,
+    color: t.colors.text,
+  },
+  clear: {
+    fontSize: 13,
+    color: t.colors.primary,
+    fontWeight: '600' as const,
+  },
   tabs: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    flexDirection: 'row' as const,
+    gap: t.spacing.sm,
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.md,
   },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+  list: {
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.lg,
+  },
   empty: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    gap: spacing.md,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: t.spacing.xl,
+    gap: t.spacing.md,
   },
-  emptyTitle: { fontSize: 15, fontWeight: '500', color: colors.text },
-  emptyText: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: t.colors.primaryBg,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: t.spacing.xs,
+  },
+  emptyTitle: {
+    ...t.typography.title,
+    color: t.colors.text,
+    textAlign: 'center' as const,
+  },
+  emptyText: {
+    ...t.typography.body,
+    color: t.colors.textSecondary,
+    textAlign: 'center' as const,
+  },
 });

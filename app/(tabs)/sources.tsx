@@ -1,30 +1,21 @@
 import { useState, useEffect } from 'react';
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Switch,
-} from 'react-native';
+import { FlatList, StyleSheet, Text, View, Switch, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useSources } from '@/lib/queries';
 import { useFollowedSources, useSetFollowedSources } from '@/lib/prefs';
 import { SourceListSkeleton } from '@/components/Skeleton';
 import type { Source } from '@/lib/types';
-import { colors, spacing } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 
 export default function SourcesScreen() {
   const { t } = useTranslation();
+  const [styles, theme] = useStyles(createStyles);
   const { data, isLoading } = useSources();
   const { data: followedIds } = useFollowedSources();
   const setFollowed = useSetFollowedSources();
   const [sources, setSources] = useState<Source[]>([]);
 
-  // Seed follow state from what the user chose at onboarding (persisted locally);
-  // fall back to each source's default flag until they've made a choice.
   useEffect(() => {
     if (!data) return;
     setSources(
@@ -49,14 +40,13 @@ export default function SourcesScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('sources.title')}</Text>
-        <TouchableOpacity>
-          <Ionicons name="add" size={26} color={colors.text} />
-        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{t('sources.title')}</Text>
+          <Text style={styles.info}>
+            {t('sources.followInfo', { active: activeCount, total: sources.length })}
+          </Text>
+        </View>
       </View>
-      <Text style={styles.info}>
-        {t('sources.followInfo', { active: activeCount, total: sources.length })}
-      </Text>
 
       {isLoading ? (
         <SourceListSkeleton />
@@ -71,9 +61,23 @@ export default function SourcesScreen() {
               </View>
               <View style={styles.rowInfo}>
                 <Text style={styles.rowName}>{item.name}</Text>
-                <Text style={styles.rowSub}>{item.activeDealsCount} deal đang sale</Text>
+                <Text style={styles.rowSub}>
+                  {t('sources.activeDeals', { count: item.activeDealsCount })}
+                </Text>
               </View>
-              <Switch value={item.isFollowed} onValueChange={() => toggle(item.id)} />
+              <Switch
+                value={item.isFollowed}
+                onValueChange={() => toggle(item.id)}
+                trackColor={{ true: theme.colors.primary, false: theme.colors.border }}
+                thumbColor={
+                  Platform.OS === 'android'
+                    ? item.isFollowed
+                      ? theme.colors.onPrimary
+                      : theme.colors.surface
+                    : undefined
+                }
+                ios_backgroundColor={theme.colors.border}
+              />
             </View>
           )}
           contentContainerStyle={styles.list}
@@ -84,39 +88,61 @@ export default function SourcesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (t: Theme) => ({
+  container: { flex: 1, backgroundColor: t.colors.bg },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: t.spacing.lg,
+    paddingTop: t.spacing.md,
+    paddingBottom: t.spacing.md,
+    gap: t.spacing.md,
   },
-  title: { fontSize: 22, fontWeight: '600', color: colors.text },
+  title: {
+    ...t.typography.h2,
+    color: t.colors.text,
+  },
   info: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    color: colors.textSecondary,
-    fontSize: 13,
+    marginTop: 4,
+    ...t.typography.caption,
+    color: t.colors.textSecondary,
   },
-  list: { paddingHorizontal: spacing.lg },
+  list: {
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.xl,
+  },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.md,
+    paddingVertical: t.spacing.md,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
-  avatarText: { color: '#fff', fontWeight: '600', fontSize: 12 },
+  avatarText: {
+    color: '#fff',
+    fontWeight: '700' as const,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
   rowInfo: { flex: 1 },
-  rowName: { fontSize: 14, fontWeight: '500', color: colors.text },
-  rowSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  sep: { height: 0.5, backgroundColor: colors.border },
+  rowName: {
+    ...t.typography.bodyStrong,
+    color: t.colors.text,
+  },
+  rowSub: {
+    marginTop: 2,
+    ...t.typography.caption,
+    color: t.colors.textSecondary,
+  },
+  sep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: t.colors.border,
+  },
 });

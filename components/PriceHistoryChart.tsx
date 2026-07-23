@@ -1,14 +1,14 @@
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { PricePoint } from '@/lib/types';
 import { formatFullPrice } from '@/lib/mockData';
-import { colors, spacing, radii } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 
 const MAX_BARS = 14; // đủ dày để thấy xu hướng, đủ thưa để chạm từng cột
-const CHART_HEIGHT = 110;
-const MIN_BAR = 22; // cột thấp nhất vẫn nhìn thấy được
+const CHART_HEIGHT = 120;
+const MIN_BAR = 24; // cột thấp nhất vẫn nhìn thấy được
 
 type Props = {
   points: PricePoint[];
@@ -21,14 +21,15 @@ type Props = {
  */
 function PriceHistoryChart({ points, isLoading }: Props) {
   const { t } = useTranslation();
+  const [styles, theme] = useStyles(createStyles);
 
   if (isLoading) return null;
   if (!points || points.length < 2) {
     return (
       <View style={styles.card}>
-        <Header t={t} />
+        <Header styles={styles} theme={theme} label={t('chart.title')} />
         <View style={styles.emptyRow}>
-          <Ionicons name="time-outline" size={16} color={colors.muted} />
+          <Ionicons name="time-outline" size={16} color={theme.colors.muted} />
           <Text style={styles.emptyText}>{t('chart.notEnough')}</Text>
         </View>
       </View>
@@ -50,17 +51,17 @@ function PriceHistoryChart({ points, isLoading }: Props) {
 
   return (
     <View style={styles.card}>
-      <Header t={t} />
+      <Header styles={styles} theme={theme} label={t('chart.title')} />
 
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.dot, { backgroundColor: colors.success }]} />
+          <View style={[styles.dot, { backgroundColor: theme.colors.success }]} />
           <Text style={styles.legendText}>
             {t('chart.lowest', { price: formatFullPrice(min) })}
           </Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.dot, { backgroundColor: colors.muted }]} />
+          <View style={[styles.dot, { backgroundColor: theme.colors.borderStrong }]} />
           <Text style={styles.legendText}>
             {t('chart.highest', { price: formatFullPrice(max) })}
           </Text>
@@ -79,10 +80,10 @@ function PriceHistoryChart({ points, isLoading }: Props) {
                   {
                     height: h,
                     backgroundColor: isLast
-                      ? colors.danger
+                      ? theme.colors.danger
                       : p.price === min
-                        ? colors.success
-                        : colors.border,
+                        ? theme.colors.success
+                        : theme.colors.border,
                   },
                 ]}
               />
@@ -98,7 +99,7 @@ function PriceHistoryChart({ points, isLoading }: Props) {
 
       {atLowest && (
         <View style={styles.lowestBadge}>
-          <Ionicons name="trending-down" size={14} color={colors.success} />
+          <Ionicons name="trending-down" size={14} color={theme.colors.success} />
           <Text style={styles.lowestText}>{t('chart.atLowest')}</Text>
         </View>
       )}
@@ -106,53 +107,91 @@ function PriceHistoryChart({ points, isLoading }: Props) {
   );
 }
 
-function Header({ t }: { t: (k: string) => string }) {
+function Header({
+  styles,
+  theme,
+  label,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  theme: Theme;
+  label: string;
+}) {
   return (
     <View style={styles.headerRow}>
-      <Ionicons name="analytics-outline" size={16} color={colors.text} />
-      <Text style={styles.headerText}>{t('chart.title')}</Text>
+      <Ionicons name="analytics-outline" size={16} color={theme.colors.text} />
+      <Text style={styles.headerText}>{label}</Text>
     </View>
   );
 }
 
 export default memo(PriceHistoryChart);
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => ({
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.radii.lg,
+    padding: t.spacing.md + 2,
+    marginBottom: t.spacing.lg,
+    gap: t.spacing.sm,
+    borderWidth: t.isDark ? 1 : 0,
+    borderColor: t.colors.border,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  headerText: { fontSize: 14, fontWeight: '600', color: colors.text },
-  legend: { flexDirection: 'row', gap: spacing.lg },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.xs,
+  },
+  headerText: {
+    ...t.typography.bodyStrong,
+    color: t.colors.text,
+  },
+  legend: { flexDirection: 'row' as const, gap: t.spacing.lg },
+  legendItem: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 12, color: colors.textSecondary },
+  legendText: {
+    ...t.typography.caption,
+    color: t.colors.textSecondary,
+  },
   bars: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: 'row' as const,
+    alignItems: 'flex-end' as const,
     height: CHART_HEIGHT,
     gap: 4,
-    marginTop: spacing.xs,
+    marginTop: t.spacing.xs,
   },
-  barSlot: { flex: 1, alignItems: 'stretch', justifyContent: 'flex-end' },
-  bar: { borderTopLeftRadius: 3, borderTopRightRadius: 3 },
-  axis: { flexDirection: 'row', justifyContent: 'space-between' },
-  axisText: { fontSize: 11, color: colors.muted },
-  emptyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  emptyText: { fontSize: 13, color: colors.textSecondary, flex: 1 },
+  barSlot: {
+    flex: 1,
+    alignItems: 'stretch' as const,
+    justifyContent: 'flex-end' as const,
+  },
+  bar: { borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  axis: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+  },
+  axisText: { fontSize: 11, color: t.colors.muted },
+  emptyRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.xs,
+  },
+  emptyText: {
+    ...t.typography.body,
+    color: t.colors.textSecondary,
+    flex: 1,
+  },
   lowestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: `${colors.success}18`,
-    paddingHorizontal: spacing.sm,
+    alignSelf: 'flex-start' as const,
+    backgroundColor: t.colors.successBg,
+    paddingHorizontal: t.spacing.sm,
     paddingVertical: 4,
-    borderRadius: radii.sm,
+    borderRadius: t.radii.sm,
   },
-  lowestText: { fontSize: 12, fontWeight: '500', color: colors.success },
+  lowestText: {
+    ...t.typography.captionStrong,
+    color: t.colors.success,
+  },
 });

@@ -14,7 +14,7 @@ import {
 } from '@/lib/notifications';
 import type { PriceAlert } from '@/lib/types';
 import { formatFullPrice } from '@/lib/mockData';
-import { colors, spacing, radii } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 
 type Row =
   | { kind: 'alert'; alert: PriceAlert }
@@ -23,6 +23,7 @@ type Row =
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const [styles, theme] = useStyles(createStyles);
   const { data: alerts = [], isLoading: alertsLoading } = useAlerts();
   const deleteAlert = useDeleteAlert();
   const { data: history = [] } = useQuery({
@@ -70,7 +71,7 @@ export default function NotificationsScreen() {
             <Image source={{ uri: alert.deal.imageUrl }} style={styles.thumb} />
           ) : (
             <View style={[styles.thumb, styles.thumbFallback]}>
-              <Ionicons name="pricetag" size={18} color={colors.muted} />
+              <Ionicons name="pricetag" size={18} color={theme.colors.muted} />
             </View>
           )}
           <View style={styles.rowInfo}>
@@ -84,8 +85,13 @@ export default function NotificationsScreen() {
               })}
             </Text>
           </View>
-          <TouchableOpacity hitSlop={8} onPress={() => onDeleteAlert(alert)}>
-            <Ionicons name="trash-outline" size={20} color={colors.muted} />
+          <TouchableOpacity
+            hitSlop={8}
+            onPress={() => onDeleteAlert(alert)}
+            accessibilityRole="button"
+            accessibilityLabel={t('alert.delete')}
+          >
+            <Ionicons name="trash-outline" size={20} color={theme.colors.muted} />
           </TouchableOpacity>
         </TouchableOpacity>
       );
@@ -101,8 +107,8 @@ export default function NotificationsScreen() {
           if (notif.dealId) router.push(`/deal/${notif.dealId}`);
         }}
       >
-        <View style={[styles.thumb, styles.thumbFallback]}>
-          <Ionicons name={icon} size={18} color={colors.primary} />
+        <View style={[styles.thumb, styles.thumbFallback, styles.thumbBrand]}>
+          <Ionicons name={icon} size={20} color={theme.colors.primary} />
         </View>
         <View style={styles.rowInfo}>
           <Text style={styles.rowTitle} numberOfLines={1}>
@@ -134,7 +140,9 @@ export default function NotificationsScreen() {
 
       {sections.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="notifications-outline" size={48} color={colors.muted} />
+          <View style={styles.emptyIcon}>
+            <Ionicons name="notifications-outline" size={36} color={theme.colors.primary} />
+          </View>
           <Text style={styles.emptyTitle}>
             {alertsLoading ? t('notifications.loading') : t('notifications.emptyTitle')}
           </Text>
@@ -166,48 +174,99 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const createStyles = (t: Theme) => ({
+  container: { flex: 1, backgroundColor: t.colors.bg },
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingTop: t.spacing.md,
+    paddingBottom: t.spacing.md,
   },
-  title: { fontSize: 22, fontWeight: '600', color: colors.text },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  title: {
+    ...t.typography.h2,
+    color: t.colors.text,
+  },
+  list: {
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.xl,
+  },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    paddingTop: t.spacing.lg,
+    paddingBottom: t.spacing.sm,
   },
-  sectionTitle: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
-  sectionAction: { fontSize: 13, color: colors.accent, fontWeight: '500' },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    color: t.colors.textSecondary,
+  },
+  sectionAction: {
+    fontSize: 13,
+    color: t.colors.primary,
+    fontWeight: '600' as const,
+  },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.md,
+    paddingVertical: t.spacing.sm + 2,
   },
   thumb: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
+    width: 46,
+    height: 46,
+    borderRadius: t.radii.md,
+    backgroundColor: t.colors.surface,
   },
-  thumbFallback: { justifyContent: 'center', alignItems: 'center' },
+  thumbFallback: {
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  thumbBrand: { backgroundColor: t.colors.primaryBg },
   rowInfo: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 14, fontWeight: '500', color: colors.text },
-  rowSub: { fontSize: 12, color: colors.textSecondary },
-  rowTime: { fontSize: 11, color: colors.muted },
-  sep: { height: 0.5, backgroundColor: colors.border },
+  rowTitle: {
+    ...t.typography.bodyStrong,
+    color: t.colors.text,
+  },
+  rowSub: {
+    ...t.typography.caption,
+    color: t.colors.textSecondary,
+  },
+  rowTime: {
+    fontSize: 11,
+    color: t.colors.muted,
+    marginTop: 2,
+  },
+  sep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: t.colors.border,
+  },
   empty: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    gap: spacing.md,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: t.spacing.xl,
+    gap: t.spacing.md,
   },
-  emptyTitle: { fontSize: 15, fontWeight: '500', color: colors.text },
-  emptyText: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: t.colors.primaryBg,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: t.spacing.xs,
+  },
+  emptyTitle: {
+    ...t.typography.title,
+    color: t.colors.text,
+    textAlign: 'center' as const,
+  },
+  emptyText: {
+    ...t.typography.body,
+    color: t.colors.textSecondary,
+    textAlign: 'center' as const,
+  },
 });

@@ -4,7 +4,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -19,7 +18,7 @@ import { enablePush } from '@/lib/notifications';
 import { formatFullPrice } from '@/lib/mockData';
 import { analytics, events } from '@/lib/analytics';
 import GradientButton from '@/components/GradientButton';
-import { colors, spacing, radii } from '@/constants/theme';
+import { useStyles, type Theme } from '@/constants/theme';
 
 const PRESET_DISCOUNTS = [5, 10, 15]; // % giảm thêm so với giá hiện tại
 
@@ -36,6 +35,7 @@ type Props = {
  */
 export default function PriceAlertModal({ visible, onClose, deal, existingAlert }: Props) {
   const { t } = useTranslation();
+  const [styles, theme] = useStyles(createStyles);
   const createAlert = useCreateAlert();
   const deleteAlert = useDeleteAlert();
 
@@ -123,11 +123,13 @@ export default function PriceAlertModal({ visible, onClose, deal, existingAlert 
                     setPreset(p);
                     setCustomText('');
                   }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
                 >
                   <Text style={[styles.presetPct, active && styles.presetTextActive]}>
                     -{p}%
                   </Text>
-                  <Text style={[styles.presetPrice, active && styles.presetTextActive]}>
+                  <Text style={[styles.presetPrice, active && styles.presetPriceActive]}>
                     {formatFullPrice(price)}
                   </Text>
                 </TouchableOpacity>
@@ -136,7 +138,7 @@ export default function PriceAlertModal({ visible, onClose, deal, existingAlert 
           </View>
 
           <View style={styles.inputRow}>
-            <Ionicons name="pricetag-outline" size={16} color={colors.muted} />
+            <Ionicons name="pricetag-outline" size={16} color={theme.colors.muted} />
             <TextInput
               style={styles.input}
               value={customText}
@@ -146,7 +148,7 @@ export default function PriceAlertModal({ visible, onClose, deal, existingAlert 
               }}
               keyboardType="number-pad"
               placeholder={t('alert.customPlaceholder')}
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={theme.colors.muted}
             />
             <Text style={styles.inputUnit}>₫</Text>
           </View>
@@ -161,7 +163,13 @@ export default function PriceAlertModal({ visible, onClose, deal, existingAlert 
                 : t('alert.saveDisabled')
             }
             onPress={onSave}
-            icon={<Ionicons name="notifications-outline" size={18} color={colors.onPrimary} />}
+            icon={
+              <Ionicons
+                name="notifications-outline"
+                size={18}
+                color={theme.colors.onPrimary}
+              />
+            }
           />
 
           {existingAlert?.isActive && (
@@ -175,61 +183,93 @@ export default function PriceAlertModal({ visible, onClose, deal, existingAlert 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (t: Theme) => ({
   backdrop: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: t.colors.overlay,
   },
-  sheetWrap: { flex: 1, justifyContent: 'flex-end' },
+  sheetWrap: { flex: 1, justifyContent: 'flex-end' as const },
   sheet: {
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: radii.lg,
-    borderTopRightRadius: radii.lg,
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
-    gap: spacing.md,
+    backgroundColor: t.colors.surfaceElevated,
+    borderTopLeftRadius: t.radii.xl,
+    borderTopRightRadius: t.radii.xl,
+    padding: t.spacing.lg,
+    paddingBottom: t.spacing.xl,
+    gap: t.spacing.md,
+    ...t.elevation.raised,
   },
   grabber: {
-    alignSelf: 'center',
-    width: 36,
+    alignSelf: 'center' as const,
+    width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.border,
+    backgroundColor: t.colors.borderStrong,
+    marginBottom: t.spacing.xs,
   },
-  title: { fontSize: 17, fontWeight: '600', color: colors.text },
-  subtitle: { fontSize: 13, color: colors.textSecondary },
-  presets: { flexDirection: 'row', gap: spacing.sm },
+  title: {
+    ...t.typography.title,
+    color: t.colors.text,
+  },
+  subtitle: {
+    ...t.typography.caption,
+    color: t.colors.textSecondary,
+  },
+  presets: { flexDirection: 'row' as const, gap: t.spacing.sm },
   preset: {
     flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radii.md,
+    alignItems: 'center' as const,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.radii.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.surface,
     gap: 2,
   },
-  presetActive: { borderColor: colors.primary, backgroundColor: `${colors.primary}10` },
-  presetPct: { fontSize: 15, fontWeight: '600', color: colors.text },
-  presetPrice: { fontSize: 11, color: colors.textSecondary },
-  presetTextActive: { color: colors.primary },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  presetActive: {
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primaryBg,
   },
-  input: { flex: 1, fontSize: 15, color: colors.text, padding: 0 },
-  inputUnit: { fontSize: 14, color: colors.muted },
-  warn: { fontSize: 12, color: colors.danger },
-  deleteBtn: { alignItems: 'center', paddingVertical: spacing.sm },
-  deleteText: { fontSize: 14, color: colors.danger, fontWeight: '500' },
+  presetPct: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: t.colors.text,
+  },
+  presetPrice: {
+    fontSize: 11,
+    color: t.colors.textSecondary,
+  },
+  presetTextActive: { color: t.colors.primary },
+  presetPriceActive: { color: t.colors.primary },
+  inputRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.sm,
+    borderWidth: 1,
+    borderColor: t.colors.border,
+    borderRadius: t.radii.md,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm + 2,
+    backgroundColor: t.colors.surface,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: t.colors.text,
+    padding: 0,
+  },
+  inputUnit: { fontSize: 14, color: t.colors.muted },
+  warn: { fontSize: 12, color: t.colors.danger },
+  deleteBtn: {
+    alignItems: 'center' as const,
+    paddingVertical: t.spacing.sm,
+  },
+  deleteText: {
+    fontSize: 14,
+    color: t.colors.danger,
+    fontWeight: '500' as const,
+  },
 });

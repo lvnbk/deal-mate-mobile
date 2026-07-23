@@ -9,6 +9,7 @@ export default {
   },
   home: {
     title: 'Hot deals',
+    eyebrow: 'Fresh today',
     loadError: 'Could not load deals. Pull down to retry.',
     retry: 'Retry',
     empty: 'No deals in this category yet.',
@@ -18,6 +19,7 @@ export default {
   sources: {
     title: 'Followed sources',
     followInfo: '{{active}}/{{total}} sources with alerts on',
+    activeDeals: '{{count}} live deals',
   },
   saved: {
     title: 'Saved',

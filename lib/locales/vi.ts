@@ -9,6 +9,7 @@ export default {
   },
   home: {
     title: 'Hot deals',
+    eyebrow: 'Hôm nay có gì',
     loadError: 'Không tải được deal. Kéo xuống để thử lại.',
     retry: 'Thử lại',
     empty: 'Chưa có deal nào trong danh mục này.',
@@ -18,6 +19,7 @@ export default {
   sources: {
     title: 'Nguồn theo dõi',
     followInfo: '{{active}}/{{total}} nguồn đang bật thông báo',
+    activeDeals: '{{count}} deal đang sale',
   },
   saved: {
     title: 'Đã lưu',
