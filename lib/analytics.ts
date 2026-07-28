@@ -23,6 +23,8 @@ export const events = {
   feedbackSubmit: 'feedback_submit',
   alertSet: 'price_alert_set',
   alertDelete: 'price_alert_delete',
+  barcodeScan: 'barcode_scan',
+  barcodeResult: 'barcode_result',
 } as const;
 
 type Props = Record<string, string | number | boolean | null>;

@@ -9,6 +9,7 @@ Backend: [`../deal-mate-backend`](../deal-mate-backend) — Cloudflare Worker (`
 ## Tính năng
 
 - **Feed deal** phân trang server-side, lọc theo danh mục + nguồn, tìm kiếm không dấu
+- **Quét mã vạch sản phẩm ngoài đời** bằng camera → tra tên → hiện deal khớp giữa các sàn
 - **Biểu đồ lịch sử giá** trên màn chi tiết deal (data từ bảng `price_history`)
 - **Cảnh báo giảm giá**: đặt giá mong muốn cho từng deal → push khi giá chạm mức (one-shot)
 - **Push notification** deal hot mới + tab Thông báo (cảnh báo đang theo dõi + lịch sử đã nhận)

@@ -29,7 +29,8 @@ app/                      # expo-router
 ├── language.tsx          # Chọn ngôn ngữ
 ├── paywall.tsx           # RevenueCat paywall (remove ads)
 ├── (tabs)/               # index (home feed), sources, saved, notifications, profile
-└── deal/[id].tsx         # Chi tiết deal: biểu đồ lịch sử giá, đặt cảnh báo giá, mở shop
+├── deal/[id].tsx         # Chi tiết deal: biểu đồ lịch sử giá, đặt cảnh báo giá, mở shop
+└── scan.tsx              # Camera scanner mã vạch → GET /barcode/:code → list deals khớp
 components/               # DealCard, FilterChip, AdBanner, GradientButton, Skeleton, UpdateGate, AnimatedSplash
 lib/
 ├── api.ts                # API client; EXPO_PUBLIC_USE_MOCK=1 → dùng mockData.ts

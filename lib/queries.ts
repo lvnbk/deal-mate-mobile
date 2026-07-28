@@ -12,6 +12,7 @@ import {
   fetchAlerts,
   putAlert,
   removeAlert,
+  lookupBarcode,
 } from './api';
 import type { DealsPage } from './api';
 import type { Deal } from './types';
@@ -24,6 +25,7 @@ export const queryKeys = {
   sources: ['sources'] as const,
   priceHistory: (id: string) => ['priceHistory', id] as const,
   alerts: ['alerts'] as const,
+  barcode: (code: string) => ['barcode', code] as const,
 };
 
 export function useDeals(category: string, sourceIds: string[] = [], q = '') {
@@ -96,5 +98,19 @@ export function useDeleteAlert() {
   return useMutation({
     mutationFn: async (dealId: string) => removeAlert(await getDeviceId(), dealId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.alerts }),
+  });
+}
+
+/**
+ * Tra 1 barcode đã quét. Cache lâu vì kết quả từ backend đã có cache riêng.
+ * `enabled` off khi code null để tránh gọi API sớm.
+ */
+export function useBarcodeLookup(code: string | null) {
+  return useQuery({
+    queryKey: queryKeys.barcode(code ?? ''),
+    queryFn: () => lookupBarcode(code!),
+    enabled: !!code,
+    staleTime: 24 * 60 * 60 * 1000, // 1 ngày
+    retry: 0, // đừng retry — muốn lỗi hiện ngay để user re-scan
   });
 }

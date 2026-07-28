@@ -13,6 +13,7 @@ import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 import { DealCard } from '@/components/DealCard';
 import { FilterChip } from '@/components/FilterChip';
 import { AdBanner } from '@/components/AdBanner';
@@ -26,6 +27,7 @@ import { useStyles, type Theme } from '@/constants/theme';
 export default function HomeScreen() {
   const openDeal = useOpenDeal();
   const { t } = useTranslation();
+  const router = useRouter();
   const [styles, theme] = useStyles(createStyles);
   const [category, setCategory] = useState('all');
   const [sourceIds, setSourceIds] = useState<string[]>([]);
@@ -123,15 +125,26 @@ export default function HomeScreen() {
               <Text style={styles.eyebrow}>{t('home.eyebrow', 'Hôm nay có gì mới')}</Text>
               <Text style={styles.title}>{t('home.title')}</Text>
             </View>
-            <TouchableOpacity
-              onPress={openSearch}
-              hitSlop={8}
-              style={styles.searchButton}
-              accessibilityRole="button"
-              accessibilityLabel={t('home.searchPlaceholder')}
-            >
-              <Ionicons name="search-outline" size={20} color={theme.colors.text} />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                onPress={() => router.push('/scan')}
+                hitSlop={8}
+                style={styles.searchButton}
+                accessibilityRole="button"
+                accessibilityLabel={t('scan.title')}
+              >
+                <Ionicons name="barcode-outline" size={20} color={theme.colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={openSearch}
+                hitSlop={8}
+                style={styles.searchButton}
+                accessibilityRole="button"
+                accessibilityLabel={t('home.searchPlaceholder')}
+              >
+                <Ionicons name="search-outline" size={20} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </View>
@@ -245,6 +258,11 @@ const createStyles = (t: Theme) => ({
   title: {
     ...t.typography.h2,
     color: t.colors.text,
+  },
+  headerActions: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.sm,
   },
   searchButton: {
     width: 40,

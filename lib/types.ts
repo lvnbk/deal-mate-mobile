@@ -34,6 +34,14 @@ export type PricePoint = {
   recordedAt: string;
 };
 
+/** Kết quả tra barcode: tên sản phẩm (nullable) + deals khớp trong DB. */
+export type BarcodeLookupResult = {
+  code: string;
+  productName: string | null;
+  source: 'cache' | 'api' | 'miss';
+  deals: Deal[];
+};
+
 /** Cảnh báo giá user đặt cho 1 deal (bảng price_alerts phía backend). */
 export type PriceAlert = {
   id: string;

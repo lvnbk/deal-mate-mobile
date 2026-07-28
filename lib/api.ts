@@ -1,4 +1,10 @@
-import type { Deal, PriceAlert, PricePoint, Source } from "./types";
+import type {
+  BarcodeLookupResult,
+  Deal,
+  PriceAlert,
+  PricePoint,
+  Source
+} from "./types";
 import { mockDeals, mockSources } from "./mockData";
 
 // Toggle this to false when your backend is up.
@@ -250,6 +256,29 @@ export async function removeAlert(
     { method: "DELETE" }
   );
   if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
+/**
+ * Tra barcode → tên sản phẩm + deals khớp. Mock: trả về 1-2 deal đầu tiên
+ * để test flow (không cần API thật).
+ */
+export async function lookupBarcode(
+  code: string
+): Promise<BarcodeLookupResult> {
+  if (USE_MOCK) {
+    await sleep(400);
+    const deals = mockDeals.slice(0, 2);
+    return {
+      code,
+      productName: `Mock product for ${code}`,
+      source: "api",
+      deals
+    };
+  }
+  const res = await fetch(`${API_BASE}/barcode/${encodeURIComponent(code)}`);
+  if (res.status === 400) throw new Error("invalid_barcode");
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
 }
 
 function sleep(ms: number) {
