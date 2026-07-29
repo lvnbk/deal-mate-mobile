@@ -98,8 +98,9 @@ export default {
     permissionTitle: 'Cho phép sử dụng camera',
     permissionText:
       'Giá Tốt cần camera để quét mã vạch sản phẩm — chỉ dùng khi bạn mở màn quét.',
-    permissionGrant: 'Cho phép camera',
-    permissionDenied: 'Camera đang bị chặn. Bật lại trong Cài đặt điện thoại nhé.',
+    permissionContinue: 'Tiếp tục',
+    openSettings: 'Mở Cài đặt',
+    permissionDenied: 'Camera đang bị chặn. Bật lại trong Cài đặt điện thoại để quét mã vạch.',
     scanning: 'Đang quét...',
     lookingUp: 'Đang tra mã {{code}}...',
     resultTitle: 'Kết quả cho mã {{code}}',

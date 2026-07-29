@@ -98,8 +98,9 @@ export default {
     permissionTitle: 'Allow camera access',
     permissionText:
       'Giá Tốt needs the camera to scan product barcodes — only used while this screen is open.',
-    permissionGrant: 'Allow camera',
-    permissionDenied: 'Camera is blocked. Enable it in your phone Settings.',
+    permissionContinue: 'Continue',
+    openSettings: 'Open Settings',
+    permissionDenied: 'Camera is blocked. Enable it in your phone Settings to scan barcodes.',
     scanning: 'Scanning...',
     lookingUp: 'Looking up {{code}}...',
     resultTitle: 'Results for {{code}}',

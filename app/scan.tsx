@@ -70,11 +70,12 @@ export default function ScanScreen() {
     return (
       <PermissionRequest
         canAskAgain={permission.canAskAgain}
-        onRequest={async () => {
-          const res = await requestPermission();
-          if (!res.granted && !res.canAskAgain) void Linking.openSettings();
+        onRequest={() => {
+          // Chỉ trigger system prompt — không auto mở Settings khi user denied.
+          // Apple 5.1.1(iv) yêu cầu không được redirect user tới Settings ngay
+          // sau khi họ tap "Don't Allow".
+          void requestPermission();
         }}
-        onClose={() => router.back()}
       />
     );
   }
@@ -138,21 +139,18 @@ function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
 function PermissionRequest({
   canAskAgain,
   onRequest,
-  onClose,
 }: {
   canAskAgain: boolean;
   onRequest: () => void;
-  onClose: () => void;
 }) {
   const { t } = useTranslation();
   const [styles, theme] = useStyles(createStyles);
+  // Apple 5.1.1(iv): pre-permission dialog KHÔNG được có nút close/skip.
+  // Nếu user đổi ý, họ dùng swipe-back gesture / tab bar để rời màn scan.
+  // Khi canAskAgain=false (đã denied 2 lần) → hiện nút "Mở Cài đặt" thủ công
+  // để user tự quyết định, không auto redirect.
   return (
     <SafeAreaView style={styles.permBg} edges={['top', 'bottom']}>
-      <View style={styles.permTop}>
-        <TouchableOpacity onPress={onClose} hitSlop={10}>
-          <Ionicons name="close" size={26} color={theme.colors.text} />
-        </TouchableOpacity>
-      </View>
       <View style={styles.permBody}>
         <View style={styles.permIcon}>
           <Ionicons name="scan-outline" size={44} color={theme.colors.primary} />
@@ -161,11 +159,19 @@ function PermissionRequest({
         <Text style={styles.permText}>
           {canAskAgain ? t('scan.permissionText') : t('scan.permissionDenied')}
         </Text>
-        <GradientButton
-          label={t('scan.permissionGrant')}
-          onPress={onRequest}
-          icon={<Ionicons name="camera-outline" size={18} color={theme.colors.onPrimary} />}
-        />
+        {canAskAgain ? (
+          <GradientButton
+            label={t('scan.permissionContinue')}
+            onPress={onRequest}
+            icon={<Ionicons name="camera-outline" size={18} color={theme.colors.onPrimary} />}
+          />
+        ) : (
+          <GradientButton
+            label={t('scan.openSettings')}
+            onPress={() => void Linking.openSettings()}
+            icon={<Ionicons name="settings-outline" size={18} color={theme.colors.onPrimary} />}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -348,11 +354,6 @@ const createStyles = (t: Theme) => ({
 
   // Permission view
   permBg: { flex: 1, backgroundColor: t.colors.bg },
-  permTop: {
-    paddingHorizontal: t.spacing.lg,
-    paddingVertical: t.spacing.md,
-    alignItems: 'flex-start' as const,
-  },
   permBody: {
     flex: 1,
     justifyContent: 'center' as const,

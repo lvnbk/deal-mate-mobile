@@ -2,7 +2,7 @@
   "expo": {
     "name": "Giá Tốt",
     "slug": "deal-mate",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.giatot.tech.app",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Giá Tốt cần dùng camera để quét mã vạch sản phẩm, giúp bạn tra giá và so sánh khuyến mãi giữa các sàn."
@@ -31,7 +31,7 @@
         "backgroundColor": "#D13A2F"
       },
       "package": "com.giatot.tech.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
