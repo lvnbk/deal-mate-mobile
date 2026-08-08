@@ -43,6 +43,12 @@ export default {
     alertTarget: 'Alert at ≤ {{target}} · Now {{current}}',
     unknownDeal: 'Deal no longer available',
   },
+  notificationBatch: {
+    title: 'Deals in this notification',
+    count: '{{count}} deals',
+    empty: 'The deals in this notification are no longer available.',
+    notFound: 'This notification could not be found.',
+  },
   profile: {
     title: 'Account',
     guest: 'This device',
@@ -97,10 +103,13 @@ export default {
     hint: 'Supports EAN-13, EAN-8, UPC-A/E',
     permissionTitle: 'Allow camera access',
     permissionText:
-      'Giá Tốt needs the camera to scan product barcodes — only used while this screen is open.',
+      'Giá Tốt uses the camera to read product barcodes and look up their prices. The camera is only active while this screen is open.',
     permissionContinue: 'Continue',
+    permissionNotNow: 'Not now',
     openSettings: 'Open Settings',
-    permissionDenied: 'Camera is blocked. Enable it in your phone Settings to scan barcodes.',
+    permissionOffTitle: 'Camera access is off',
+    permissionDenied:
+      'Barcode scanning needs the camera, which is currently off for Giá Tốt. You can still search and browse deals without it.',
     scanning: 'Scanning...',
     lookingUp: 'Looking up {{code}}...',
     resultTitle: 'Results for {{code}}',

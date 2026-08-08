@@ -1,6 +1,7 @@
 import type {
   BarcodeLookupResult,
   Deal,
+  NotificationBatch,
   PriceAlert,
   PricePoint,
   Source
@@ -256,6 +257,30 @@ export async function removeAlert(
     { method: "DELETE" }
   );
   if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
+/**
+ * Nội dung 1 notification gộp: danh sách deal đúng của lần push đó.
+ * Trả null khi batch không còn (server đã dọn / id sai).
+ */
+export async function fetchNotificationBatch(
+  id: string
+): Promise<NotificationBatch | null> {
+  if (USE_MOCK) {
+    await sleep(150);
+    return {
+      id,
+      kind: "new_deals",
+      title: `🔥 ${mockDeals.length} deal hot mới`,
+      body: mockDeals[0]?.title ?? "",
+      createdAt: new Date().toISOString(),
+      deals: mockDeals.slice(0, 5)
+    };
+  }
+  const res = await fetch(`${API_BASE}/notifications/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
 }
 
 /**

@@ -30,6 +30,7 @@ app/                      # expo-router
 ├── paywall.tsx           # RevenueCat paywall (remove ads)
 ├── (tabs)/               # index (home feed), sources, saved, notifications, profile
 ├── deal/[id].tsx         # Chi tiết deal: biểu đồ lịch sử giá, đặt cảnh báo giá, mở shop
+├── notification/[id].tsx # Deal của 1 notification gộp (GET /notifications/:id)
 └── scan.tsx              # Camera scanner mã vạch → GET /barcode/:code → list deals khớp
 components/               # DealCard, FilterChip, AdBanner, GradientButton, Skeleton, UpdateGate, AnimatedSplash
 lib/
@@ -38,7 +39,9 @@ lib/
 │                         #   usePriceHistory, useAlerts, useCreateAlert/useDeleteAlert)
 ├── savedDeals.ts         # Lưu deal + lịch sử xem (local, MMKV)
 ├── prefs.ts              # Followed sources/categories (local + sync backend)
-├── notifications.ts      # Expo push token + lịch sử thông báo đã nhận (MMKV)
+├── notifications.ts      # Expo push token + lịch sử thông báo (MMKV);
+│                         #   notificationTarget() = luật điều hướng khi tap:
+│                         #   dealId → /deal/:id, batchId → /notification/:id, else tab Thông báo
 ├── purchases.ts          # RevenueCat; ads.ts (AdMob + useOpenDeal interstitial)
 ├── analytics.ts          # PostHog; events const — mọi event đặt tên ở đây
 ├── i18n.ts + locales/    # Thêm text mới = thêm key vào CẢ vi.ts VÀ en.ts, không hardcode string trong JSX

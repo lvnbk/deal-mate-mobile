@@ -27,7 +27,9 @@ export type ReceivedNotification = {
   title: string;
   body: string;
   dealId: string | null;
-  type: string | null; // 'new_deals' | 'price_alert' | ...
+  // Notification gộp: id của batch để mở màn hình liệt kê đúng các deal đó.
+  batchId: string | null;
+  type: string | null; // 'new_deal' | 'new_deals' | 'price_alert' | ...
   receivedAt: string;
 };
 
@@ -53,6 +55,7 @@ async function recordNotification(n: Notifications.Notification): Promise<void> 
     title: content.title ?? '',
     body: content.body ?? '',
     dealId: typeof data.dealId === 'string' ? data.dealId : null,
+    batchId: typeof data.batchId === 'string' ? data.batchId : null,
     type: typeof data.type === 'string' ? data.type : null,
     receivedAt: new Date().toISOString(),
   };
@@ -152,8 +155,22 @@ export async function disablePush(): Promise<void> {
 const handledInSession = new Set<string>();
 
 /**
- * Lưu lịch sử + điều hướng tới deal liên quan cho một notification response.
- * Persist identifier để cold-start không mở lại deal cũ mỗi lần bật app.
+ * Đích điều hướng của một notification, theo thứ tự cụ thể → tổng quát:
+ * deal cụ thể → màn hình liệt kê deal của batch → tab Thông báo.
+ * Trả null khi payload không có gì để mở.
+ */
+export function notificationTarget(data: {
+  dealId?: string | null;
+  batchId?: string | null;
+}): string | null {
+  if (data.dealId) return `/deal/${data.dealId}`;
+  if (data.batchId) return `/notification/${data.batchId}`;
+  return null;
+}
+
+/**
+ * Lưu lịch sử + điều hướng tới deal (hoặc batch) liên quan cho một notification
+ * response. Persist identifier để cold-start không mở lại deal cũ mỗi lần bật app.
  */
 async function handleResponse(
   response: Notifications.NotificationResponse,
@@ -164,8 +181,14 @@ async function handleResponse(
     LAST_HANDLED_RESPONSE_KEY,
     response.notification.request.identifier,
   );
-  const dealId = response.notification.request.content.data?.dealId;
-  if (typeof dealId === 'string') router.push(`/deal/${dealId}`);
+  const data = (response.notification.request.content.data ?? {}) as Record<string, unknown>;
+  const target = notificationTarget({
+    dealId: typeof data.dealId === 'string' ? data.dealId : null,
+    batchId: typeof data.batchId === 'string' ? data.batchId : null,
+  });
+  // Không có đích cụ thể (vd batch ghi lỗi phía server) → về tab Thông báo,
+  // nơi vẫn còn lịch sử để user tự lần lại.
+  router.push((target ?? '/notifications') as any);
 }
 
 /**

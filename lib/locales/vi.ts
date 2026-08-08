@@ -43,6 +43,12 @@ export default {
     alertTarget: 'Báo khi ≤ {{target}} · Hiện tại {{current}}',
     unknownDeal: 'Deal không còn tồn tại',
   },
+  notificationBatch: {
+    title: 'Deal trong thông báo',
+    count: '{{count}} deal',
+    empty: 'Những deal trong thông báo này không còn hiệu lực.',
+    notFound: 'Không tìm thấy thông báo này.',
+  },
   profile: {
     title: 'Tài khoản',
     guest: 'Thiết bị này',
@@ -97,10 +103,13 @@ export default {
     hint: 'Hỗ trợ mã EAN-13, EAN-8, UPC-A/E',
     permissionTitle: 'Cho phép sử dụng camera',
     permissionText:
-      'Giá Tốt cần camera để quét mã vạch sản phẩm — chỉ dùng khi bạn mở màn quét.',
+      'Giá Tốt dùng camera để đọc mã vạch sản phẩm và tra giá. Camera chỉ hoạt động khi bạn đang mở màn quét.',
     permissionContinue: 'Tiếp tục',
+    permissionNotNow: 'Để sau',
     openSettings: 'Mở Cài đặt',
-    permissionDenied: 'Camera đang bị chặn. Bật lại trong Cài đặt điện thoại để quét mã vạch.',
+    permissionOffTitle: 'Camera đang tắt',
+    permissionDenied:
+      'Quét mã vạch cần camera, hiện đang tắt cho Giá Tốt. Bạn vẫn có thể tìm kiếm và xem khuyến mãi mà không cần camera.',
     scanning: 'Đang quét...',
     lookingUp: 'Đang tra mã {{code}}...',
     resultTitle: 'Kết quả cho mã {{code}}',

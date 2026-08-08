@@ -67,16 +67,23 @@ export default function ScanScreen() {
     );
   }
   if (!permission.granted) {
-    return (
-      <PermissionRequest
-        canAskAgain={permission.canAskAgain}
-        onRequest={() => {
-          // Chỉ trigger system prompt — không auto mở Settings khi user denied.
-          // Apple 5.1.1(iv) yêu cầu không được redirect user tới Settings ngay
-          // sau khi họ tap "Don't Allow".
-          void requestPermission();
+    // Apple 5.1.1(iv): tôn trọng quyết định của user.
+    //  - canAskAgain=true  → primer giải thích lý do TRƯỚC khi gọi system prompt,
+    //    luôn có lối thoát ("Để sau" / nút đóng).
+    //  - user bấm "Don't Allow" → rời màn scan ngay, KHÔNG hiện bất kỳ message
+    //    nào thuyết phục họ đổi ý và KHÔNG tự mở Settings.
+    //  - lần sau user chủ động mở lại màn scan → thông báo trung tính (thuần
+    //    thông tin) kèm link Settings do chính user bấm.
+    return permission.canAskAgain ? (
+      <PermissionPrimer
+        onRequest={async () => {
+          const result = await requestPermission();
+          if (!result.granted) router.back();
         }}
+        onDismiss={() => router.back()}
       />
+    ) : (
+      <PermissionUnavailable onDismiss={() => router.back()} />
     );
   }
 
@@ -136,42 +143,84 @@ function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
   return <View style={[styles.corner, styles[`corner_${pos}`]]} />;
 }
 
-function PermissionRequest({
-  canAskAgain,
+/** Header chỉ có nút đóng — đảm bảo mọi state của màn permission đều có lối ra. */
+function PermissionHeader({ onDismiss }: { onDismiss: () => void }) {
+  const [styles, theme] = useStyles(createStyles);
+  return (
+    <View style={styles.permHeader}>
+      <TouchableOpacity
+        onPress={onDismiss}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+      >
+        <Ionicons name="close" size={26} color={theme.colors.text} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+/**
+ * Primer hiện TRƯỚC system prompt: giải thích camera dùng làm gì, kèm lựa chọn
+ * từ chối ("Để sau") để user không bị dồn vào thế phải cấp quyền.
+ */
+function PermissionPrimer({
   onRequest,
+  onDismiss,
 }: {
-  canAskAgain: boolean;
   onRequest: () => void;
+  onDismiss: () => void;
 }) {
   const { t } = useTranslation();
   const [styles, theme] = useStyles(createStyles);
-  // Apple 5.1.1(iv): pre-permission dialog KHÔNG được có nút close/skip.
-  // Nếu user đổi ý, họ dùng swipe-back gesture / tab bar để rời màn scan.
-  // Khi canAskAgain=false (đã denied 2 lần) → hiện nút "Mở Cài đặt" thủ công
-  // để user tự quyết định, không auto redirect.
   return (
     <SafeAreaView style={styles.permBg} edges={['top', 'bottom']}>
+      <PermissionHeader onDismiss={onDismiss} />
       <View style={styles.permBody}>
         <View style={styles.permIcon}>
           <Ionicons name="scan-outline" size={44} color={theme.colors.primary} />
         </View>
         <Text style={styles.permTitle}>{t('scan.permissionTitle')}</Text>
-        <Text style={styles.permText}>
-          {canAskAgain ? t('scan.permissionText') : t('scan.permissionDenied')}
-        </Text>
-        {canAskAgain ? (
-          <GradientButton
-            label={t('scan.permissionContinue')}
-            onPress={onRequest}
-            icon={<Ionicons name="camera-outline" size={18} color={theme.colors.onPrimary} />}
-          />
-        ) : (
-          <GradientButton
-            label={t('scan.openSettings')}
-            onPress={() => void Linking.openSettings()}
-            icon={<Ionicons name="settings-outline" size={18} color={theme.colors.onPrimary} />}
-          />
-        )}
+        <Text style={styles.permText}>{t('scan.permissionText')}</Text>
+        <GradientButton
+          label={t('scan.permissionContinue')}
+          onPress={onRequest}
+          icon={<Ionicons name="camera-outline" size={18} color={theme.colors.onPrimary} />}
+        />
+        <TouchableOpacity onPress={onDismiss} style={styles.permSecondary} hitSlop={8}>
+          <Text style={styles.permSecondaryText}>{t('scan.permissionNotNow')}</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+/**
+ * State khi camera đã bị tắt/từ chối và iOS không cho hỏi lại. Đây là thông báo
+ * thuần thông tin, KHÔNG thuyết phục user đổi ý: chỉ nêu vì sao tính năng không
+ * chạy được, kèm link Settings để user tự bấm nếu họ muốn (Apple 5.1.1(iv)).
+ * Màn này chỉ xuất hiện khi user chủ động quay lại màn quét, không bao giờ
+ * hiện ngay sau khi họ bấm "Don't Allow".
+ */
+function PermissionUnavailable({ onDismiss }: { onDismiss: () => void }) {
+  const { t } = useTranslation();
+  const [styles, theme] = useStyles(createStyles);
+  return (
+    <SafeAreaView style={styles.permBg} edges={['top', 'bottom']}>
+      <PermissionHeader onDismiss={onDismiss} />
+      <View style={styles.permBody}>
+        <View style={styles.permIconMuted}>
+          <Ionicons name="camera-outline" size={44} color={theme.colors.muted} />
+        </View>
+        <Text style={styles.permTitle}>{t('scan.permissionOffTitle')}</Text>
+        <Text style={styles.permText}>{t('scan.permissionDenied')}</Text>
+        <TouchableOpacity
+          onPress={() => void Linking.openSettings()}
+          style={styles.permSecondary}
+          hitSlop={8}
+        >
+          <Text style={styles.permLinkText}>{t('scan.openSettings')}</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -354,6 +403,12 @@ const createStyles = (t: Theme) => ({
 
   // Permission view
   permBg: { flex: 1, backgroundColor: t.colors.bg },
+  permHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
+  },
   permBody: {
     flex: 1,
     justifyContent: 'center' as const,
@@ -376,11 +431,34 @@ const createStyles = (t: Theme) => ({
     color: t.colors.text,
     textAlign: 'center' as const,
   },
+  permIconMuted: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: t.colors.surface,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    alignSelf: 'center' as const,
+    marginBottom: t.spacing.md,
+  },
   permText: {
     ...t.typography.body,
     color: t.colors.textSecondary,
     textAlign: 'center' as const,
     marginBottom: t.spacing.md,
+  },
+  permSecondary: {
+    alignSelf: 'center' as const,
+    paddingVertical: t.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+  },
+  permSecondaryText: {
+    ...t.typography.body,
+    color: t.colors.textSecondary,
+  },
+  permLinkText: {
+    ...t.typography.body,
+    color: t.colors.primary,
   },
 
   // Results

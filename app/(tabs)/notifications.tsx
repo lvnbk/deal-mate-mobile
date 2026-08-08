@@ -8,6 +8,7 @@ import Toast from 'react-native-toast-message';
 import { useAlerts, useDeleteAlert } from '@/lib/queries';
 import {
   notifKeys,
+  notificationTarget,
   readNotificationHistory,
   clearNotificationHistory,
   type ReceivedNotification,
@@ -99,12 +100,14 @@ export default function NotificationsScreen() {
 
     const { notif } = item;
     const icon = notif.type === 'price_alert' ? 'trending-down' : 'flame-outline';
+    // Cùng logic với lúc tap notification thật: deal cụ thể → batch → không mở.
+    const target = notificationTarget(notif);
     return (
       <TouchableOpacity
         style={styles.row}
-        activeOpacity={notif.dealId ? 0.7 : 1}
+        activeOpacity={target ? 0.7 : 1}
         onPress={() => {
-          if (notif.dealId) router.push(`/deal/${notif.dealId}`);
+          if (target) router.push(target as any);
         }}
       >
         <View style={[styles.thumb, styles.thumbFallback, styles.thumbBrand]}>

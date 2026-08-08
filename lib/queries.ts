@@ -13,6 +13,7 @@ import {
   putAlert,
   removeAlert,
   lookupBarcode,
+  fetchNotificationBatch,
 } from './api';
 import type { DealsPage } from './api';
 import type { Deal } from './types';
@@ -26,6 +27,7 @@ export const queryKeys = {
   priceHistory: (id: string) => ['priceHistory', id] as const,
   alerts: ['alerts'] as const,
   barcode: (code: string) => ['barcode', code] as const,
+  notificationBatch: (id: string) => ['notificationBatch', id] as const,
 };
 
 export function useDeals(category: string, sourceIds: string[] = [], q = '') {
@@ -98,6 +100,19 @@ export function useDeleteAlert() {
   return useMutation({
     mutationFn: async (dealId: string) => removeAlert(await getDeviceId(), dealId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.alerts }),
+  });
+}
+
+/**
+ * Deal của một notification gộp. Nội dung batch cố định sau khi push nên chỉ
+ * giá/trạng thái deal mới đổi — cache vừa phải là đủ.
+ */
+export function useNotificationBatch(id: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.notificationBatch(id ?? ''),
+    queryFn: () => fetchNotificationBatch(id!),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

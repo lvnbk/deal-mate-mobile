@@ -42,6 +42,19 @@ export type BarcodeLookupResult = {
   deals: Deal[];
 };
 
+/**
+ * Nội dung của một notification gộp ("N deal hot mới"): đúng những deal đã nằm
+ * trong lần push đó. GET /notifications/:id.
+ */
+export type NotificationBatch = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  deals: Deal[];
+};
+
 /** Cảnh báo giá user đặt cho 1 deal (bảng price_alerts phía backend). */
 export type PriceAlert = {
   id: string;
